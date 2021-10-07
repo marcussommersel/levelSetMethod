@@ -109,7 +109,7 @@ def reinit(phi):
         temp[:, -2] = temp[:, -3] - (temp[:, -4]- temp[:, -3])
         temp[:, -1] = temp[:, -2] - (temp[:, -3]- temp[:, -2])
 
-        # Old BC
+        # Old BC l
         # temp[0,:] = phi[0,:] + (u[0] + epsilon)/abs(u[0] + epsilon)*(phi[0,:] - phi[1,:])
         # temp[-1,:] = phi[-1,:] + (u[0] + epsilon)/abs(u[-1] + epsilon)*(phi[-2,:] - phi[-1,:])
         # temp[:,0] = phi[:,0] + (v[0] + epsilon)/abs(v[0] + epsilon)*(phi[:,0] - phi[:,1])
