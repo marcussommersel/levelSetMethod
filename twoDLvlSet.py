@@ -7,6 +7,28 @@ def init(phi, init):
             phi[i,j] = min(np.sqrt(x[i]**2 + y[j]**2) - np.sqrt(init[0]**2 + init[1]**2))
     return phi
 
+def TVDRK3(phi, scheme, u, v):
+
+    # first euler step
+    phix, phiy = scheme(phi, u, v)
+    n1 = phi - dt*(u*phix + v*phiy)
+
+    # second euler step
+    phix, phiy = scheme(n1, u, v)
+    n2 = n1 - dt*(u*phix + v*phiy)
+
+    # averaging step
+    n1_2 = 3/4*phi + 1/4*n2
+
+    # last euler step
+    phix, phiy = scheme(n1_2, u, v)
+    n3_2 = n1_2 - dt*(u*phix + v*phiy)
+
+    # second averaging step
+    return 1/3*phi + 2/3*n3_2
+
+# def TVDRK3reinit(phi, scheme, u, v)
+
 def weno(phi, u, v):
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
@@ -116,11 +138,14 @@ def reinit(phi):
                 # vphiy = (max(v[i,j], 0)*(3*phi[i,j] - 4*phi[i, j-1] + phi[i, j-2])/(2*dy) 
                 #     + min(v[i,j], 0)*(-phi[i, j+2] + 4*phi[i, j+1] - 3*phi[i,j])/(2*dy))
 
+        # TVDRK3
+
+        # first euler step
         phix, phiy = weno(phi, u, v)
-
         S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*dx**2)
-
         temp = phi - dtau*S*(abs(phix + phiy) - 1)
+
+        # second euler step
 
         # temp =  phi - dt*S0*(np.sqrt((u*phix)**2 + (v*phiy)**2) - 1)
 
@@ -179,8 +204,8 @@ phi0 = phi
 # Godunov, boken til sethien.
 
 for k in range(it):
-    if k%1 == 0 and k != 0:
-        phi = reinit(phi)
+    # if k%1 == 0 and k != 0:
+    #     phi = reinit(phi)
     plottingContour(k)
     temp = np.zeros_like(phi)
 
@@ -210,7 +235,8 @@ for k in range(it):
 
     phix, phiy = weno(phi, u, v)
 
-    temp = phi - dt*(u*phix + v*phiy)
+    # temp = phi - dt*(u*phix + v*phiy)
+    temp = TVDRK3(phi, weno, u, v)
 
     temp = wenoBC(temp)
     phi = temp
