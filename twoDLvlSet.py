@@ -19,6 +19,82 @@ def init(phi, init = False):
                 phi[i,j] = min(np.sqrt(x[i]**2 + y[j]**2) - np.sqrt(np.power(init[0], 2) + np.power(init[1], 2)))
     return phi
 
+def weno(phi, u, v):
+
+    for i in range(2, len(u)-2):
+
+        v1 = (phi[i-2,j] - phi[i-3,j])/dx
+        v2 = (phi[i-1,j] - phi[i-2,j])/dx
+        v3 = (phi[i,j] - phi[i-1,j])/dx
+        v4 = (phi[i+1,j] - phi[i,j])/dx
+        v5 = (phi[i+2,j] - phi[i+1,j])/dx
+
+
+
+    # v1_m = (phi[1:-4,:] - phi[0:-5,:])/dx
+    # v2_m = (phi[2:-3,:] - phi[1:-4,:])/dx
+    # v3_m = (phi[3:-2,:] - phi[2:-3,:])/dx
+    # v4_m = (phi[4:-1,:] - phi[3:-2,:])/dx
+    # v5_m = (phi[5:,:] - phi[4:-1,:])/dx
+
+    # v1_p = (phi[4:-1, :] - phi[5:, :])/dx
+    # v2_p = (phi[3:-2, :] - phi[4:-1, :])/dx
+    # v3_p = (phi[2:-3, :] - phi[3:-2, :])/dx
+    # v4_p = (phi[1:-4, :] - phi[2:-3, :])/dx
+    # v5_p = (phi[0:-5, :] - phi[1:-4, :])/dx
+
+    # u_p = max(u, 0)
+    # u_m = min(u, 0) 
+
+
+    S1 = 13/12*(v1 - 2*v2 + v3)**2 + 1/4*(v1 - 4*v2 + v3)**2
+    S2 = 13/12*(v2 - 2*v3 + v4)**2 + 1/4*(v2 - v4)**2
+    S3 = 13/12*(v3 - 2*v4 + v5)**2 + 1/4*(3*v3 - 4*v4 + v5)**2
+
+    epsilon = 10**-6*max(v1**2, v2**2, v3**2, v4**2, v5**2) + 10**-99
+
+    alpha1 = 0.1/(S1 + epsilon)**2
+    alpha2 = 0.6/(S2 + epsilon)**2
+    alpha3 = 0.3/(S3 + epsilon)**2
+
+    omega1 = alpha1/(alpha1 + alpha2 + alpha3)
+    omega2 = alpha2/(alpha1 + alpha2 + alpha3)
+    omega3 = alpha3/(alpha1 + alpha2 + alpha3)
+
+    phix1 = v1/3 - 7*v2/6 + 11*v3/6
+    phix2 = -v2/6 + 5*v3/6 + v4/3
+    phix3 = v3/3 + 5*v4/6 - v5/6
+
+    phix = (omega1*phix1 + omega2*phix2 + omega3*phix3)
+
+    v1 = (phi[i,j-2] - phi[i,j-3])/dy
+    v2 = (phi[i,j-1] - phi[i,j-2])/dy
+    v3 = (phi[i,j] - phi[i,j-1])/dy
+    v4 = (phi[i,j+1] - phi[i,j])/dy
+    v5 = (phi[i,j+2] - phi[i,j+1])/dy
+
+    S1 = 13/12*(v1 - 2*v2 + v3)**2 + 1/4*(v1 - 4*v2 + v3)**2
+    S2 = 13/12*(v2 - 2*v3 + v4)**2 + 1/4*(v2 - v4)**2
+    S3 = 13/12*(v3 - 2*v4 + v5)**2 + 1/4*(3*v3 - 4*v4 + v5)**2
+
+    epsilon = 10**-6*max(v1**2, v2**2, v3**2, v4**2, v5**2) + 10**-99
+
+    alpha1 = 0.1/(S1 + epsilon)**2
+    alpha2 = 0.6/(S2 + epsilon)**2
+    alpha3 = 0.3/(S3 + epsilon)**2
+
+    omega1 = alpha1/(alpha1 + alpha2 + alpha3)
+    omega2 = alpha2/(alpha1 + alpha2 + alpha3)
+    omega3 = alpha3/(alpha1 + alpha2 + alpha3)
+
+    phiy1 = v1/3 - 7*v2/6 + 11*v3/6
+    phiy2 = -v2/6 + 5*v3/6 + v4/3
+    phiy3 = v3/3 + 5*v4/6 - v5/6
+    
+    phiy = (omega1*phiy1 + omega2*phiy2 + omega3*phiy3)
+
+    return phix, phiy
+
 def reinit(phi):
     temp = phi
     for k in range(tmax):
@@ -26,10 +102,6 @@ def reinit(phi):
             for j in range(2, len(y)-2):
                 
                 # WENO
-                # omega1 = 0.1
-                # omega2 = 0.6
-                # omega3 = 0.3
-
                 v1 = (phi[i-2,j] - phi[i-3,j])/dx
                 v2 = (phi[i-1,j] - phi[i-2,j])/dx
                 v3 = (phi[i,j] - phi[i-1,j])/dx
