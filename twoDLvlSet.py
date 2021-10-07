@@ -102,6 +102,9 @@ def wenoBC(fun):
 
 def reinit(phi):
     temp = phi
+    dtau = 0.5*dx
+    S0 = phi/(np.sqrt(phi**2 + dx**2))
+    # S0 = phi/(np.sqrt(phi**2 + 2*dx**2)) # from Karl Yngve Lervåg (2013)
     for k in range(tmax):
         # for i in range(2, len(x)-2):
         #     for j in range(2, len(y)-2):
@@ -115,7 +118,11 @@ def reinit(phi):
 
         phix, phiy = weno(phi, u, v)
 
-        temp =  phi - dt*S0*(np.sqrt((u*phix)**2 + (v*phiy)**2) - 1)
+        S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*dx**2)
+
+        temp = phi - dtau*S*(abs(phix + phiy) - 1)
+
+        # temp =  phi - dt*S0*(np.sqrt((u*phix)**2 + (v*phiy)**2) - 1)
 
                 # Euler and central
                 # phi_norm = np.sqrt(((temp[i+1,j] - temp[i-1,j])/(2*dx))**2 + ((temp[i,j+1] - temp[i,j-1])/(2*dy))**2)
@@ -142,7 +149,7 @@ def plottingContour(title = ''):
     plt.show()
 
 n = 100
-tmax = 10 # used in reinitialization
+tmax = 5 # used in reinitialization
 it = 100
 proj = "2D"
 epsilon = 10e-6
@@ -168,12 +175,11 @@ initX = [a*np.cos(theta), a*np.sin(theta)]
 
 phi = init(phi, initX)
 phi0 = phi
-S0 = phi0/(np.sqrt(phi0**2 + dx**2))
 
 # Godunov, boken til sethien.
 
 for k in range(it):
-    if k%2 == 0 and k != 0:
+    if k%1 == 0 and k != 0:
         phi = reinit(phi)
     plottingContour(k)
     temp = np.zeros_like(phi)
