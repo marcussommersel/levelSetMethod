@@ -20,14 +20,12 @@ def TVDRK3(phi, scheme, u, v):
     # averaging step
     n1_2 = 3/4*phi + 1/4*n2
 
-    # last euler step
+    # third euler step
     phix, phiy = scheme(n1_2, u, v)
     n3_2 = n1_2 - dt*(u*phix + v*phiy)
 
     # second averaging step
     return 1/3*phi + 2/3*n3_2
-
-# def TVDRK3reinit(phi, scheme, u, v)
 
 def weno(phi, u, v):
     phix = np.zeros([len(x), len(y)])
@@ -123,7 +121,7 @@ def wenoBC(fun):
     return fun
 
 def reinit(phi):
-    temp = phi
+    # temp = phi
     dtau = 0.5*dx
     S0 = phi/(np.sqrt(phi**2 + dx**2))
     # S0 = phi/(np.sqrt(phi**2 + 2*dx**2)) # from Karl Yngve Lervåg (2013)
@@ -143,9 +141,23 @@ def reinit(phi):
         # first euler step
         phix, phiy = weno(phi, u, v)
         S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*dx**2)
-        temp = phi - dtau*S*(abs(phix + phiy) - 1)
+        n1 = phi - dtau*S*(abs(phix + phiy) - 1)
 
         # second euler step
+        phix, phiy = weno(n1, u, v)
+        S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*dx**2)
+        n2 = n1 - dtau*S*(abs(phix + phiy) - 1)
+
+        # averaging step
+        n1_2 = 3/4*phi + 1/4*n2
+
+        # third euler step
+        phix, phiy = weno(n1_2, u, v)
+        S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*dx**2)
+        n3_2 = n1_2 - dtau*S*(abs(phix + phiy) - 1)
+
+        # second averaging step
+        temp = 1/3*phi + 2/3*n3_2
 
         # temp =  phi - dt*S0*(np.sqrt((u*phix)**2 + (v*phiy)**2) - 1)
 
@@ -163,7 +175,7 @@ def plottingContour(title = ''):
     n = 1
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'r')
-        plt.contourf(x[m:-n], y[m:-n], phi[m:-n,m:-n],0)
+        plt.contourf(x[m:-n], y[m:-n], phi[m:-n,m:-n])
         plt.colorbar()
     elif proj == '3D':
         X, Y = np.meshgrid(x, y)
@@ -179,7 +191,7 @@ it = 100
 proj = "2D"
 epsilon = 10e-6
 
-dx = 1/n*0.001
+dx = 1/n
 dy = dx
 
 x = np.linspace(-1, 1, n)
@@ -204,8 +216,8 @@ phi0 = phi
 # Godunov, boken til sethien.
 
 for k in range(it):
-    # if k%1 == 0 and k != 0:
-    #     phi = reinit(phi)
+    if k%2 == 0 and k != 0:
+        phi = reinit(phi)
     plottingContour(k)
     temp = np.zeros_like(phi)
 
@@ -218,20 +230,6 @@ for k in range(it):
     #     for j in range(2,len(y)-2):
             # temp[i,j] = phi[i, j] - dt/2*(u[i,j]*(phi[i+1, j] - phi[i-1, j])/dx 
             #     + v[i,j]*(phi[i, j + 1] - phi[i, j - 1])/dy) # central and 1st euler
-
-            # RK with central differencing
-            # n1[i,j] = phi[i,j] - dt/2*(u[i,j]*(phi[i+1, j] - phi[i-1, j])/dx 
-            #     + v[i,j]*(phi[i, j + 1] - phi[i, j - 1])/dy) # central
-            
-            # n2[i,j] = n1[i,j] - dt/2*(u[i,j]*(n1[i + 1, j] - n1[i-1, j])/dx 
-            #     + v[i,j]*(n1[i, j + 1] - n1[i, j - 1])/dy)
-            
-            # n1_2[i,j] = 3/4*phi[i,j] + 1/4*n2[i,j]
-
-            # n3_2[i,j] = n1_2[i,j] - dt/2*(u[i,j]*(n1_2[i + 1, j] - n1_2[i-1, j])/dx 
-            #     + v[i,j]*(n1_2[i, j + 1] - n1_2[i, j - 1])/dy)
-            
-            # temp[i,j] = 1/3*phi[i,j] + 2/3*n3_2[i,j]
 
     phix, phiy = weno(phi, u, v)
 
