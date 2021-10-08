@@ -59,6 +59,35 @@ def upwind(phi, u, v):
                 
     return phix, phiy
 
+def upwind2(phi, u, v):
+    phix = np.zeros([len(x), len(y)])
+    phiy = np.zeros([len(x), len(y)])
+    for i in range(2, len(x)-2):
+        for j in range(2, len(y)-2):
+        
+            if u[i, j] >= 0:
+                phix[i, j] = (3*phi[i,j] - 4*phi[i-1, j] + phi[i-2, j])/(2*dx) 
+            elif u[i, j] < 0:
+                phix[i, j] = (-phi[i+2, j] + 4*phi[i+1, j] - 3*phi[i,j])/(2*dx)
+
+            if v[i, j] >= 0:
+                phiy[i, j] = (3*phi[i,j] - 4*phi[i, j-1] + phi[i, j-2])/(2*dx) 
+            elif v[i, j] < 0:
+                phiy[i, j] = (-phi[i, j+2] + 4*phi[i, j+1] - 3*phi[i,j])/(2*dx)
+    
+    return phix, phiy
+
+def central(phi, u, v):
+    phix = np.zeros([len(x), len(y)])
+    phiy = np.zeros([len(x), len(y)])
+    for i in range(2, len(x)-2):
+        for j in range(2, len(y)-2):
+
+            phix[i, j] = (phi[i + 1, j] - phi[i - 1, j])/(2*dx)
+            phiy[i, j] = (phi[i, j + 1] - phi[i, j - 1])/(2*dy)
+
+    return phix, phiy
+
 def weno(phi, u, v):
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
@@ -158,15 +187,6 @@ def reinit(phi):
     S0 = phi/(np.sqrt(phi**2 + dx**2))
     # S0 = phi/(np.sqrt(phi**2 + 2*dx**2)) # from Karl Yngve Lervåg (2013)
     for k in range(tmax):
-        # for i in range(2, len(x)-2):
-        #     for j in range(2, len(y)-2):
-                
-                # 2nd upwind
-                # uphix = (max(u[i,j], 0)*(3*phi[i,j] - 4*phi[i-1, j] + phi[i-2, j])/(2*dx) 
-                #     + min(u[i,j], 0)*(-phi[i+2, j] + 4*phi[i+1, j] - 3*phi[i,j])/(2*dx))
-
-                # vphiy = (max(v[i,j], 0)*(3*phi[i,j] - 4*phi[i, j-1] + phi[i, j-2])/(2*dy) 
-                #     + min(v[i,j], 0)*(-phi[i, j+2] + 4*phi[i, j+1] - 3*phi[i,j])/(2*dy))
 
         # TVDRK3
 
@@ -192,10 +212,6 @@ def reinit(phi):
         temp = 1/3*phi + 2/3*n3_2
 
         # temp =  phi - dt*S0*(np.sqrt((u*phix)**2 + (v*phiy)**2) - 1)
-
-                # Euler and central
-                # phi_norm = np.sqrt(((temp[i+1,j] - temp[i-1,j])/(2*dx))**2 + ((temp[i,j+1] - temp[i,j-1])/(2*dy))**2)
-                # temp[i,j] = phi[i,j] - dt*S0[i,j]*(phi_norm - 1)
 
         temp = wenoBC(temp)
         phi = temp
@@ -261,10 +277,5 @@ if __name__ == "__main__":
         n2 = np.zeros_like(phi)
         n1_2 = np.zeros_like(phi)
         n3_2 = np.zeros_like(phi)
-        
-        # for i in range(2,len(x)-2):
-        #     for j in range(2,len(y)-2):
-                # temp[i,j] = phi[i, j] - dt/2*(u[i,j]*(phi[i+1, j] - phi[i-1, j])/dx 
-                #     + v[i,j]*(phi[i, j + 1] - phi[i, j - 1])/dy) # central and 1st euler
 
-        phi = TVDRK3(phi, weno, u, v)
+        phi = TVDRK3(phi, upwind2, u, v)
