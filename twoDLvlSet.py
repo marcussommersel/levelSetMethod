@@ -25,7 +25,39 @@ def TVDRK3(phi, scheme, u, v):
     n3_2 = n1_2 - dt*(u*phix + v*phiy)
 
     # second averaging step
-    return 1/3*phi + 2/3*n3_2
+    temp =  1/3*phi + 2/3*n3_2
+
+    if (scheme) == weno:
+        temp = wenoBC(temp)
+
+    return temp
+
+def euler(phi, scheme, u, v):
+    phix, phiy = scheme(phi, u, v)
+    temp = phi - dt*(u*phix + v*phiy)
+
+    if (scheme) == weno:
+        temp = wenoBC(temp)
+
+    return temp
+
+def upwind(phi, u, v):
+    phix = np.zeros([len(x), len(y)])
+    phiy = np.zeros([len(x), len(y)])
+    for i in range(2, len(x)-2):
+        for j in range(2, len(y)-2):
+            
+            if u[i,j] >= 0:
+                phix[i, j] = (phi[i, j] - phi[i - 1, j])/dx
+            elif u[i,j] < 0:
+                phix[i, j] = (phi[i + 1, j] - phi[i, j])/dx
+
+            if v[i,j] >= 0:
+                phiy[i, j] = (phi[i, j] - phi[i, j - 1])/dy
+            elif v[i,j] < 0:
+                phiy[i, j] = (phi[i, j + 1] - phi[i, j])/dy
+                
+    return phix, phiy
 
 def weno(phi, u, v):
     phix = np.zeros([len(x), len(y)])
@@ -185,59 +217,54 @@ def plottingContour(title = ''):
     plt.title(title)
     plt.show()
 
-n = 100
-tmax = 5 # used in reinitialization
-it = 100
-proj = "2D"
-epsilon = 10e-6
 
-dx = 1/n
-dy = dx
-
-x = np.linspace(-1, 1, n)
-y = np.linspace(-1, 1, n)
-
-u = np.zeros([len(x), len(y)])
-v = np.zeros([len(x), len(y)])
-u[:,:] = 1
-v[:,:] = 1
-
-dt = (dx + dy)/(u + v).max() # CFL condition
-
-phi = np.zeros([len(x), len(y)])
-
-a = 0.5
-theta = np.linspace(0, 2*np.pi, n)
-initX = [a*np.cos(theta), a*np.sin(theta)]
-
-phi = init(phi, initX)
-phi0 = phi
-
-# Godunov, boken til sethien.
-
-for k in range(it):
-    if k%2 == 0 and k != 0:
-        phi = reinit(phi)
-    plottingContour(k)
-    temp = np.zeros_like(phi)
-
-    n1 = np.zeros_like(phi)
-    n2 = np.zeros_like(phi)
-    n1_2 = np.zeros_like(phi)
-    n3_2 = np.zeros_like(phi)
-    
-    # for i in range(2,len(x)-2):
-    #     for j in range(2,len(y)-2):
-            # temp[i,j] = phi[i, j] - dt/2*(u[i,j]*(phi[i+1, j] - phi[i-1, j])/dx 
-            #     + v[i,j]*(phi[i, j + 1] - phi[i, j - 1])/dy) # central and 1st euler
-
-    phix, phiy = weno(phi, u, v)
-
-    # temp = phi - dt*(u*phix + v*phiy)
-    temp = TVDRK3(phi, weno, u, v)
-
-    temp = wenoBC(temp)
-    phi = temp
 
 if __name__ == "__main__":
-    print(dt)
+    n = 100
+    tmax = 5 # used in reinitialization
+    it = 100
+    proj = "2D"
+    epsilon = 10e-6
+
+    dx = 1/n
+    dy = 1/n
+
+    x = np.linspace(-1, 1, n)
+    y = np.linspace(-1, 1, n)
+
+    u = np.zeros([len(x), len(y)])
+    v = np.zeros([len(x), len(y)])
+    u[:,:] = 1
+    v[:,:] = 1
+
+    dt = (dx + dy)/(u + v).max() # CFL condition
+
+    phi = np.zeros([len(x), len(y)])
+
+    a = 0.5
+    theta = np.linspace(0, 2*np.pi, n)
+    initX = [a*np.cos(theta), a*np.sin(theta)]
+
+    phi = init(phi, initX)
+    phi0 = phi
+
+    # Godunov, boken til sethien.
+
+    for k in range(it):
+
+        # if k%2 == 0 and k != 0:
+        #     phi = reinit(phi)
+        plottingContour(k)
+        temp = np.zeros_like(phi)
+
+        n1 = np.zeros_like(phi)
+        n2 = np.zeros_like(phi)
+        n1_2 = np.zeros_like(phi)
+        n3_2 = np.zeros_like(phi)
+        
+        # for i in range(2,len(x)-2):
+        #     for j in range(2,len(y)-2):
+                # temp[i,j] = phi[i, j] - dt/2*(u[i,j]*(phi[i+1, j] - phi[i-1, j])/dx 
+                #     + v[i,j]*(phi[i, j + 1] - phi[i, j - 1])/dy) # central and 1st euler
+
+        phi = TVDRK3(phi, weno, u, v)
