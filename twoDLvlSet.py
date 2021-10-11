@@ -181,7 +181,7 @@ def wenoBC(fun):
 
     return fun
 
-def reinit(phi):
+def reinit(phi, scheme, u, v):
     # temp = phi
     dtau = 0.5*dx
     S0 = phi/(np.sqrt(phi**2 + dx**2))
@@ -191,12 +191,12 @@ def reinit(phi):
         # TVDRK3
 
         # first euler step
-        phix, phiy = weno(phi, u, v)
+        phix, phiy = scheme(phi, u, v)
         S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*dx**2)
         n1 = phi - dtau*S*(abs(phix + phiy) - 1)
 
         # second euler step
-        phix, phiy = weno(n1, u, v)
+        phix, phiy = scheme(n1, u, v)
         S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*dx**2)
         n2 = n1 - dtau*S*(abs(phix + phiy) - 1)
 
@@ -204,7 +204,7 @@ def reinit(phi):
         n1_2 = 3/4*phi + 1/4*n2
 
         # third euler step
-        phix, phiy = weno(n1_2, u, v)
+        phix, phiy = scheme(n1_2, u, v)
         S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*dx**2)
         n3_2 = n1_2 - dtau*S*(abs(phix + phiy) - 1)
 
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     n = 100
     tmax = 5 # used in reinitialization
     it = 100
-    proj = "2D"
+    proj = "3D"
     epsilon = 10e-6
 
     dx = 1/n
@@ -268,8 +268,8 @@ if __name__ == "__main__":
 
     for k in range(it):
 
-        # if k%2 == 0 and k != 0:
-        #     phi = reinit(phi)
+        if k%2 == 0 and k != 0:
+            phi = reinit(phi, weno, u, v)
         plottingContour(k)
         temp = np.zeros_like(phi)
 
@@ -278,4 +278,4 @@ if __name__ == "__main__":
         n1_2 = np.zeros_like(phi)
         n3_2 = np.zeros_like(phi)
 
-        phi = TVDRK3(phi, upwind2, u, v)
+        phi = TVDRK3(phi, weno, u, v)
