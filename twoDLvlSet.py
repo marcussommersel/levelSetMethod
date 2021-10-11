@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 def init(phi, init):
     for i in range(len(phi[:, 0])):
@@ -184,29 +185,35 @@ def wenoBC(fun):
 def reinit(phi, scheme, u, v):
     # temp = phi
     dtau = 0.5*dx
-    S0 = phi/(np.sqrt(phi**2 + dx**2))
+    S0 = phi/(np.sqrt(phi**2 + max(dx, dy)**2))
     # S0 = phi/(np.sqrt(phi**2 + 2*dx**2)) # from Karl Yngve Lervåg (2013)
     for k in range(tmax):
 
         # TVDRK3
 
+        temp = np.zeros_like(phi)
+        n1 = np.zeros_like(phi)
+        n2 = np.zeros_like(phi)
+        n1_2 = np.zeros_like(phi)
+        n3_2 = np.zeros_like(phi)
+
         # first euler step
         phix, phiy = scheme(phi, u, v)
-        S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*dx**2)
-        n1 = phi - dtau*S*(abs(phix + phiy) - 1)
+        S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        n1 = phi - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # second euler step
         phix, phiy = scheme(n1, u, v)
-        S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*dx**2)
-        n2 = n1 - dtau*S*(abs(phix + phiy) - 1)
+        S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        n2 = n1 - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # averaging step
         n1_2 = 3/4*phi + 1/4*n2
 
         # third euler step
         phix, phiy = scheme(n1_2, u, v)
-        S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*dx**2)
-        n3_2 = n1_2 - dtau*S*(abs(phix + phiy) - 1)
+        S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        n3_2 = n1_2 - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # second averaging step
         temp = 1/3*phi + 2/3*n3_2
@@ -216,7 +223,11 @@ def reinit(phi, scheme, u, v):
         temp = wenoBC(temp)
         phi = temp
         # plottingContour()
-    return phi
+
+        phix, phiy = scheme(phi, u, v)
+        phiGradAbs = abs(phix + phiy)
+
+    return phi, phiGradAbs
 
 def plottingContour(title = ''):
     m = 0
@@ -237,9 +248,9 @@ def plottingContour(title = ''):
 
 if __name__ == "__main__":
     n = 100
-    tmax = 5 # used in reinitialization
+    tmax = 1 # used in reinitialization
     it = 100
-    proj = "3D"
+    proj = "2D"
     epsilon = 10e-6
 
     dx = 1/n
@@ -253,7 +264,7 @@ if __name__ == "__main__":
     u[:,:] = 1
     v[:,:] = 1
 
-    dt = (dx + dy)/(u + v).max() # CFL condition
+    dt = 0.5*(dx + dy)/(u + v).max() # CFL condition
 
     phi = np.zeros([len(x), len(y)])
 
@@ -266,16 +277,17 @@ if __name__ == "__main__":
 
     # Godunov, boken til sethien.
 
+    totalTime = 0
+
     for k in range(it):
-
-        if k%2 == 0 and k != 0:
-            phi = reinit(phi, weno, u, v)
-        plottingContour(k)
-        temp = np.zeros_like(phi)
-
-        n1 = np.zeros_like(phi)
-        n2 = np.zeros_like(phi)
-        n1_2 = np.zeros_like(phi)
-        n3_2 = np.zeros_like(phi)
-
+        startTime = time.time()
+        if k%1 == 0 and k != 0:
+            phi, dPhi = reinit(phi, weno, u, v)
         phi = TVDRK3(phi, weno, u, v)
+
+        t = k*dt
+        currentTime = time.time() - startTime
+        totalTime += currentTime # This is without plotting
+        print("iteration = " + str(k) + ", time = " + str(t) + ", iteration time = " + str(totalTime))
+        if k%10 == 0:
+            plottingContour("t = " + str(k*dt) + ", it = " + str(k))
