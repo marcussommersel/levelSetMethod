@@ -248,7 +248,7 @@ def plottingContour(title = ''):
 
 if __name__ == "__main__":
     n = 100
-    tmax = 1 # used in reinitialization
+    tmax = 1 # number of timesteps in reinitialization
     it = 100
     proj = "2D"
     epsilon = 10e-6
@@ -287,7 +287,7 @@ if __name__ == "__main__":
 
         t = k*dt
         currentTime = time.time() - startTime
-        totalTime += currentTime # This is without plotting
+        totalTime += currentTime # plotting not included
         print("iteration = " + str(k) + ", time = " + str(t) + ", iteration time = " + str(totalTime))
         if k%10 == 0:
             plottingContour("t = " + str(k*dt) + ", it = " + str(k))
