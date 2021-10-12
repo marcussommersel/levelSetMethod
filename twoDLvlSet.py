@@ -92,8 +92,8 @@ def central(phi, u, v):
 def weno(phi, u, v):
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
-    for i in range(2, len(x)-2):
-        for j in range(2, len(y)-2):
+    for i in range(2, len(x)-3):
+        for j in range(2, len(y)-3):
 
             # WENO
             if u[i,j] >= 0:
@@ -234,7 +234,7 @@ def plottingContour(title = ''):
     n = 1
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'r')
-        plt.contourf(x[m:-n], y[m:-n], phi[m:-n,m:-n])
+        plt.contourf(x[m:-n], y[m:-n], phi[m:-n,m:-n],0)
         plt.colorbar()
     elif proj == '3D':
         X, Y = np.meshgrid(x, y)
@@ -261,8 +261,16 @@ if __name__ == "__main__":
 
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
-    u[:,:] = 1
-    v[:,:] = 1
+    # u[:,:] = 1
+    # v[:,:] = 1
+
+    for i in range(len(x)):
+        for j in range(len(y)):
+            u[i,j] = -2*(np.sin(np.pi*x[i]))**2*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi)
+            v[i,j] = -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*(np.cos(np.pi*y[j]))**2*np.cos(np.pi)
+
+            # u[i,j] = 1
+            # v[i,j] = 1
 
     dt = 0.5*(dx + dy)/(u + v).max() # CFL condition
 
@@ -283,11 +291,13 @@ if __name__ == "__main__":
         startTime = time.time()
         if k%1 == 0 and k != 0:
             phi, dPhi = reinit(phi, weno, u, v)
+        elif k == 0:
+            plottingContour("t = " + str(k*dt) + ", it = " + str(k))
         phi = TVDRK3(phi, weno, u, v)
 
         t = k*dt
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
         print("iteration = " + str(k) + ", time = " + str(t) + ", iteration time = " + str(totalTime))
-        if k%10 == 0:
+        if k%10 == 0 and k != 0:
             plottingContour("t = " + str(k*dt) + ", it = " + str(k))
