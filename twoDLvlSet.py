@@ -5,10 +5,6 @@ import time
 from numpy.core.numeric import fromfunction
 
 def init(phi, init, c, r):
-    # for i in range(len(phi[:, 0])):
-    #     for j in range(len(phi[0,:])):
-    #         phi[i,j] = min(np.sqrt(x[i]**2 + y[j]**2) - np.sqrt(init[0]**2 + init[1]**2))
-    # return phi
     for i in range(len(x)):
         for j in range(len(y)):
             if (x[i] - c[0])**2 + (y[j] - c[1])**2 < r**2:
