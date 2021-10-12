@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+from numpy.core.numeric import fromfunction
+
 def init(phi, init):
     for i in range(len(phi[:, 0])):
         for j in range(len(phi[0,:])):
@@ -249,7 +251,7 @@ def plottingContour(title = ''):
 if __name__ == "__main__":
     n = 100
     tmax = 1 # number of timesteps in reinitialization
-    it = 100
+    it = 11
     proj = "2D"
     epsilon = 10e-6
 
@@ -264,16 +266,6 @@ if __name__ == "__main__":
     # u[:,:] = 1
     # v[:,:] = 1
 
-    for i in range(len(x)):
-        for j in range(len(y)):
-            u[i,j] = -2*(np.sin(np.pi*x[i]))**2*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi)
-            v[i,j] = -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*(np.cos(np.pi*y[j]))**2*np.cos(np.pi)
-
-            # u[i,j] = 1
-            # v[i,j] = 1
-
-    dt = 0.5*(dx + dy)/(u + v).max() # CFL condition
-
     phi = np.zeros([len(x), len(y)])
 
     a = 0.5
@@ -286,18 +278,36 @@ if __name__ == "__main__":
     # Godunov, boken til sethien.
 
     totalTime = 0
+    dt = 0
+    t = 0
+    T = 1
+
+    def uVortex(i,j):
+        return -2*(np.sin(np.pi*x[i]))**2*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T)
+
+    def vVortex(i,j):
+        return -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*(np.cos(np.pi*y[j]))**2*np.cos(np.pi*t/T)
 
     for k in range(it):
+        if k == 0:
+            plottingContour("t = " + str(t) + ", it = " + str(k) + ", t/T = " + str(t/T))
+
         startTime = time.time()
+
+        u = np.fromfunction(uVortex, (len(x), len(y)), dtype=int)
+        v = np.fromfunction(vVortex, (len(x), len(y)), dtype=int)
+
+        # CFL condition
+        dt = 0.5*(dx + dy)/(u + v).max()
+        t += dt
+
         if k%1 == 0 and k != 0:
             phi, dPhi = reinit(phi, weno, u, v)
-        elif k == 0:
-            plottingContour("t = " + str(k*dt) + ", it = " + str(k))
+
         phi = TVDRK3(phi, weno, u, v)
 
-        t = k*dt
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
-        print("iteration = " + str(k) + ", time = " + str(t) + ", iteration time = " + str(totalTime))
-        if k%10 == 0 and k != 0:
-            plottingContour("t = " + str(k*dt) + ", it = " + str(k))
+        print("iteration = " + str(k) + ", time = " + str(t) + ", iteration time = " + str(totalTime) + ", t/T = " + str(t/T))
+        if k%5 == 0 and k != 0:
+            plottingContour("t = " + str(k*dt) + ", it = " + str(k) + ", t/T = " + str(t/T))
