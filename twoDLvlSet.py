@@ -4,10 +4,17 @@ import time
 
 from numpy.core.numeric import fromfunction
 
-def init(phi, init):
-    for i in range(len(phi[:, 0])):
-        for j in range(len(phi[0,:])):
-            phi[i,j] = min(np.sqrt(x[i]**2 + y[j]**2) - np.sqrt(init[0]**2 + init[1]**2))
+def init(phi, init, c, r):
+    # for i in range(len(phi[:, 0])):
+    #     for j in range(len(phi[0,:])):
+    #         phi[i,j] = min(np.sqrt(x[i]**2 + y[j]**2) - np.sqrt(init[0]**2 + init[1]**2))
+    # return phi
+    for i in range(len(x)):
+        for j in range(len(y)):
+            if (x[i] - c[0])**2 + (y[j] - c[1])**2 < r**2:
+                phi[i,j] = - min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
+            else:
+                phi[i,j] = min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
     return phi
 
 def TVDRK3(phi, scheme, u, v):
@@ -232,12 +239,12 @@ def reinit(phi, scheme, u, v):
     return phi, phiGradAbs
 
 def plottingContour(title = ''):
-    m = 0
-    n = 1
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'r')
-        plt.contourf(x[m:-n], y[m:-n], phi[m:-n,m:-n],0)
+        plt.contourf(x, y, np.transpose(phi))
         plt.colorbar()
+        # plt.ylim(0, 1)
+        # plt.xlim(0, 1)
     elif proj == '3D':
         X, Y = np.meshgrid(x, y)
         fig = plt.figure()
@@ -258,8 +265,8 @@ if __name__ == "__main__":
     dx = 1/n
     dy = 1/n
 
-    x = np.linspace(-1, 1, n)
-    y = np.linspace(-1, 1, n)
+    x = np.linspace(0, 1, n)
+    y = np.linspace(0, 1, n)
 
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
@@ -268,11 +275,12 @@ if __name__ == "__main__":
 
     phi = np.zeros([len(x), len(y)])
 
-    a = 0.5
+    # initial boundary
+    a = 0.15 # radius
     theta = np.linspace(0, 2*np.pi, n)
-    initX = [a*np.cos(theta), a*np.sin(theta)]
+    initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
 
-    phi = init(phi, initX)
+    phi = init(phi, initX, [0.5, 0.75], a)
     phi0 = phi
 
     # Godunov, boken til sethien.
@@ -309,5 +317,5 @@ if __name__ == "__main__":
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
         print("iteration = " + str(k) + ", time = " + str(t) + ", iteration time = " + str(totalTime) + ", t/T = " + str(t/T))
-        if k%5 == 0 and k != 0:
+        if k%10 == 0 and k != 0:
             plottingContour("t = " + str(k*dt) + ", it = " + str(k) + ", t/T = " + str(t/T))
