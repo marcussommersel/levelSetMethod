@@ -2,8 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from numpy.core.numeric import fromfunction
-
 def init(phi, init, c, r):
     for i in range(len(x)):
         for j in range(len(y)):
@@ -252,10 +250,11 @@ def plottingContour(title = ''):
 
 
 if __name__ == "__main__":
-    n = 100
+    n = 64
     tmax = 1 # number of timesteps in reinitialization
-    it = 11
+    it = 101
     proj = "2D"
+    testCase = 'zalesak'
     epsilon = 10e-6
 
     dx = 1/n
@@ -292,14 +291,27 @@ if __name__ == "__main__":
     def vVortex(i,j):
         return -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*(np.cos(np.pi*y[j]))**2*np.cos(np.pi*t/T)
 
+    def uZalesak(i,j):
+        return -np.pi/628*(x[i]**2 + 2*y[j] - x[i] - 1)
+
+    def vZalesak(i,j):
+        return np.pi/628*(2*x[i] + y[j]**2 - 1 - y[j])
+
+    if testCase == 'vortex':
+        uvel = uVortex
+        vvel = vVortex
+    elif testCase == 'zalesak':
+        uvel = uZalesak
+        vvel = vZalesak
+
     for k in range(it):
         if k == 0:
             plottingContour("t = " + str(t) + ", it = " + str(k) + ", t/T = " + str(t/T))
 
         startTime = time.time()
 
-        u = np.fromfunction(uVortex, (len(x), len(y)), dtype=int)
-        v = np.fromfunction(vVortex, (len(x), len(y)), dtype=int)
+        u = np.fromfunction(uvel, (len(x), len(y)), dtype=int)
+        v = np.fromfunction(vvel, (len(x), len(y)), dtype=int)
 
         # CFL condition
         dt = 0.5*(dx + dy)/(u + v).max()
