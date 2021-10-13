@@ -1,14 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import path
 import time
 
 def init(phi, init, c, r):
+
+    p = path.Path(np.transpose(init))
     for i in range(len(x)):
         for j in range(len(y)):
-            if (x[i] - c[0])**2 + (y[j] - c[1])**2 < r**2:
+            if p.contains_points([(x[i], y[j])]):
                 phi[i,j] = - min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
             else:
                 phi[i,j] = min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
+            # if (x[i] - c[0])**2 + (y[j] - c[1])**2 < r**2:
+            #     phi[i,j] = - min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
+            # else:
+            #     phi[i,j] = min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
     return phi
 
 def TVDRK3(phi, scheme, u, v):
@@ -50,7 +57,7 @@ def upwind(phi, u, v):
     phiy = np.zeros([len(x), len(y)])
     for i in range(2, len(x)-2):
         for j in range(2, len(y)-2):
-            
+
             if u[i,j] >= 0:
                 phix[i, j] = (phi[i, j] - phi[i - 1, j])/dx
             elif u[i,j] < 0:
@@ -60,7 +67,7 @@ def upwind(phi, u, v):
                 phiy[i, j] = (phi[i, j] - phi[i, j - 1])/dy
             elif v[i,j] < 0:
                 phiy[i, j] = (phi[i, j + 1] - phi[i, j])/dy
-                
+
     return phix, phiy
 
 def upwind2(phi, u, v):
@@ -68,17 +75,17 @@ def upwind2(phi, u, v):
     phiy = np.zeros([len(x), len(y)])
     for i in range(2, len(x)-2):
         for j in range(2, len(y)-2):
-        
+
             if u[i, j] >= 0:
-                phix[i, j] = (3*phi[i,j] - 4*phi[i-1, j] + phi[i-2, j])/(2*dx) 
+                phix[i, j] = (3*phi[i,j] - 4*phi[i-1, j] + phi[i-2, j])/(2*dx)
             elif u[i, j] < 0:
                 phix[i, j] = (-phi[i+2, j] + 4*phi[i+1, j] - 3*phi[i,j])/(2*dx)
 
             if v[i, j] >= 0:
-                phiy[i, j] = (3*phi[i,j] - 4*phi[i, j-1] + phi[i, j-2])/(2*dx) 
+                phiy[i, j] = (3*phi[i,j] - 4*phi[i, j-1] + phi[i, j-2])/(2*dx)
             elif v[i, j] < 0:
                 phiy[i, j] = (-phi[i, j+2] + 4*phi[i, j+1] - 3*phi[i,j])/(2*dx)
-    
+
     return phix, phiy
 
 def central(phi, u, v):
@@ -235,7 +242,7 @@ def reinit(phi, scheme, u, v):
 def plottingContour(title = ''):
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'r')
-        plt.contourf(x, y, np.transpose(phi))
+        plt.contourf(x, y, np.transpose(phi), 0)
         plt.colorbar()
         # plt.ylim(0, 1)
         # plt.xlim(0, 1)
@@ -246,8 +253,6 @@ def plottingContour(title = ''):
         ax.contour3D(X, Y, phi, 50, cmap='coolwarm')
     plt.title(title)
     plt.show()
-
-
 
 if __name__ == "__main__":
     n = 64
@@ -270,15 +275,7 @@ if __name__ == "__main__":
 
     phi = np.zeros([len(x), len(y)])
 
-    # initial boundary
-    a = 0.15 # radius
-    theta = np.linspace(0, 2*np.pi, n)
-    initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
-
-    phi = init(phi, initX, [0.5, 0.75], a)
-    phi0 = phi
-
-    # Godunov, boken til sethien.
+    # initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
 
     totalTime = 0
     dt = 0
@@ -297,12 +294,40 @@ if __name__ == "__main__":
     def vZalesak(i,j):
         return np.pi/628*(2*x[i] + y[j]**2 - 1 - y[j])
 
+    # initial boundary
+    cx = 0.5 # center of initial boundary
+    cy = 0.75
+    a = 0.15 # radius
+    theta = np.linspace(0, 2*np.pi, n)
     if testCase == 'vortex':
         uvel = uVortex
         vvel = vVortex
+        initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
     elif testCase == 'zalesak':
         uvel = uZalesak
         vvel = vZalesak
+
+        width = 0.05
+        length = 0.25 # values from Claudio Walker
+        thetaZ1 = np.linspace(0, 3/2*np.pi - np.arcsin(0.5*width/a), n)
+        thetaZ2 = np.linspace(3/2*np.pi + np.arcsin(0.5*width/a), 2*np.pi, n)
+        x1 = -width/2 + cx
+        x2 = width/2 + cx
+        y1 = -np.sqrt(a**2 - width**2) + cy 
+        y2 = y1 + length
+        xinit = a*np.cos(thetaZ1) + cx
+        xinit = np.append(xinit, [x1, x2])
+        xinit = np.append(xinit, [a*np.cos(thetaZ2) + cx])
+
+        yinit = a*np.sin(thetaZ1) + cy
+        yinit = np.append(yinit, [y2, y2])
+        yinit = np.append(yinit, [a*np.sin(thetaZ2) + cy])
+        initX = [xinit, yinit]
+
+    phi = init(phi, initX, [cx, cy], a)
+    phi0 = phi
+
+    # Godunov, boken til sethien.
 
     for k in range(it):
         if k == 0:
@@ -325,5 +350,5 @@ if __name__ == "__main__":
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
         print("iteration = " + str(k) + ", time = " + str(t) + ", iteration time = " + str(totalTime) + ", t/T = " + str(t/T))
-        if k%10 == 0 and k != 0:
+        if k%1 == 0 and k != 0:
             plottingContour("t = " + str(k*dt) + ", it = " + str(k) + ", t/T = " + str(t/T))
