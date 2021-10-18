@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import path
 import time
 
-def init(phi, init, c, r):
+def init(phi, init, c=0, r=0):
 
     p = path.Path(np.transpose(init))
     for i in range(len(x)):
@@ -239,13 +239,13 @@ def reinit(phi, scheme, u, v):
 
     return phi, phiGradAbs
 
-def plottingContour(title = ''):
+def plottingContour(title = '', limitx=[-1,1], limity=[-1,1]):
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'r')
         plt.contourf(x, y, np.transpose(phi), 0)
         plt.colorbar()
-        # plt.ylim(0, 1)
-        # plt.xlim(0, 1)
+        plt.xlim(limitx)
+        plt.ylim(limity)
     elif proj == '3D':
         X, Y = np.meshgrid(x, y)
         fig = plt.figure()
@@ -255,9 +255,9 @@ def plottingContour(title = ''):
     plt.show()
 
 if __name__ == "__main__":
-    n = 64
+    n = 256
     tmax = 1 # number of timesteps in reinitialization
-    it = 101
+    it = 1001
     proj = "2D"
     testCase = 'zalesak'
     epsilon = 10e-6
@@ -270,12 +270,8 @@ if __name__ == "__main__":
 
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
-    # u[:,:] = 1
-    # v[:,:] = 1
 
     phi = np.zeros([len(x), len(y)])
-
-    # initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
 
     totalTime = 0
     dt = 0
@@ -303,6 +299,8 @@ if __name__ == "__main__":
         uvel = uVortex
         vvel = vVortex
         initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
+        limx = [0, 1]
+        limy = [0, 1]
     elif testCase == 'zalesak':
         uvel = uZalesak
         vvel = vZalesak
@@ -323,6 +321,16 @@ if __name__ == "__main__":
         yinit = np.append(yinit, [y2, y2])
         yinit = np.append(yinit, [a*np.sin(thetaZ2) + cy])
         initX = [xinit, yinit]
+        limx = [0, 1]
+        limy = [0, 1]
+
+    elif testCase == 'pospos':
+        u[:,:] = -1
+        v[:,:] = -1
+        a = 0.5
+        initX = [a*np.cos(theta), a*np.sin(theta)]
+        limx = [-1, 1]
+        limy = [-1, 1]
 
     phi = init(phi, initX, [cx, cy], a)
     phi0 = phi
@@ -331,15 +339,16 @@ if __name__ == "__main__":
 
     for k in range(it):
         if k == 0:
-            plottingContour("t = " + str(t) + ", it = " + str(k) + ", t/T = " + str(t/T))
+            plottingContour("t = " + str(t) + ", it = " + str(k) + ", t/T = " + str(t/T), limx, limy)
 
         startTime = time.time()
 
-        u = np.fromfunction(uvel, (len(x), len(y)), dtype=int)
-        v = np.fromfunction(vvel, (len(x), len(y)), dtype=int)
+        if not testCase == 'pospos':
+            u = np.fromfunction(uvel, (len(x), len(y)), dtype=int)
+            v = np.fromfunction(vvel, (len(x), len(y)), dtype=int)
 
         # CFL condition
-        dt = 0.5*(dx + dy)/(u + v).max()
+        dt = 0.5*(dx + dy)/(abs(u + v)).max()
         t += dt
 
         if k%1 == 0 and k != 0:
@@ -350,5 +359,5 @@ if __name__ == "__main__":
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
         print("iteration = " + str(k) + ", time = " + str(t) + ", iteration time = " + str(totalTime) + ", t/T = " + str(t/T))
-        if k%1 == 0 and k != 0:
-            plottingContour("t = " + str(k*dt) + ", it = " + str(k) + ", t/T = " + str(t/T))
+        if k%10 == 0 and k != 0:
+            plottingContour("t = " + str(k*dt) + ", it = " + str(k) + ", t/T = " + str(t/T), limx, limy)
