@@ -42,13 +42,13 @@ def reinit(phi, init = False):
 phi = reinit(phi, initX)
 
 plt.plot(x, phi)
-plt.plot(initX, [0, 0], 'x')
+plt.plot(initX, [0, 0], 'x', markersize=10)
 plt.show()
 temp = np.zeros_like(phi)
 
 for i in range(it):
-    # if i%5 == 0:
-    #     phi = reinit(phi)
+    if i%5 == 0:
+        phi = reinit(phi)
     for j in range(1, len(phi)-1):
         # temp[j] = phi[j] - u[j]*dt/dx*(phi[j] - phi[j-1]) # upwind
         temp[j] = phi[j] - u[j]*dt/(2*dx)*(phi[j+1] - phi[j-1]) # central
@@ -56,7 +56,7 @@ for i in range(it):
     temp[-1] = phi[-1] + (u[0] + epsilon)/abs(u[-1] + epsilon)*(phi[-2] - phi[-1])
     phi = temp
     plt.plot(x, phi)
-    plt.plot(initX, [0, 0], 'x')
+    plt.plot(initX, [0, 0], 'x', markersize=10)
     plt.title(i)
     plt.show()
 
