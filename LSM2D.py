@@ -79,7 +79,7 @@ def plottingContour(title = '', limitx=[-1,1], limity=[-1,1]):
     plt.title(title)
     plt.show()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     n = 128
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 20
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     CFL = 0.25
 
-    proj = "2D"
+    proj = '2D'
     testCase = 'vortex'
     T = 2 # used in vortex-test
     
@@ -165,17 +165,17 @@ if __name__ == "__main__":
 
     for k in range(it):
 
-        print("iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}".format(k, t, totalTime, t/T))
+        print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
         if k%10 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.50:
-            plottingContour("t = {0:.2f}, it = {1}".format(t, k), [x[0],x[-1]], [y[0],y[-1]])
+            plottingContour('t = {0:.2f}, it = {1}'.format(t, k), [x[0],x[-1]], [y[0],y[-1]])
 
         if k%reinitfreq == 0 and k != 0 and doreinit:
             reinitStart = time.time()
             phi = reinit(phi, sc.godunov)
             reinitTime = time.time() - reinitStart
-            print("Reinitialization time = {0}".format(reinitTime))
+            print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
-            plottingContour("t = {0:.2f}, it = {1}, reinit".format(k*dt, k), [x[0],x[-1]], [y[0],y[-1]])
+            plottingContour('t = {0:.2f}, it = {1}, reinit'.format(k*dt, k), [x[0],x[-1]], [y[0],y[-1]])
 
         startTime = time.time()
 
