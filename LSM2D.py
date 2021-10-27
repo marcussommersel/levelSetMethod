@@ -15,34 +15,30 @@ def init(phi, init):
                 phi[i,j] = min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
     return phi
 
-def reinit(phi, scheme, u, v):
+def reinit(phi, scheme):
     dtau = 0.5*dx
-    # S0 = phi/(np.sqrt(phi**2 + max(dx, dy)**2))
-    # S = S0
     # S0 = phi/(np.sqrt(phi**2 + 2*dx**2)) # from Karl Yngve Lervåg (2013)
+    # S = S0
     for k in range(tmax):
 
         # TVDRK3
-
         temp = np.zeros_like(phi)
         n1 = np.zeros_like(phi)
         n2 = np.zeros_like(phi)
         n1_2 = np.zeros_like(phi)
         n3_2 = np.zeros_like(phi)
-        # phix, phiy = scheme(phi, u, v)
-        # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
 
         S0 = phi/(np.sqrt(phi**2 + max(dx, dy)**2))
         S = S0
 
         # first euler step
         phix, phiy = scheme(phi, S, S, x, y, dx, dy)
-        # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
         n1 = phi - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # second euler step
         phix, phiy = scheme(n1, S, S, x, y, dx, dy)
-        # S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*max(dx, dy)**2)
         n2 = n1 - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # averaging step
@@ -50,7 +46,7 @@ def reinit(phi, scheme, u, v):
 
         # third euler step
         phix, phiy = scheme(n1_2, S, S, x, y, dx, dy)
-        # S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*max(dx, dy)**2)
         n3_2 = n1_2 - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # second averaging step
@@ -87,7 +83,10 @@ def plottingContour(title = '', limitx=[-1,1], limity=[-1,1]):
 if __name__ == "__main__":
     n = 128
     tmax = 10 # number of timesteps in reinitialization
+    reinitfreq = 20
+    doreinit = False
     it = 10001
+
 
     CFL = 0.25
 
@@ -126,10 +125,18 @@ if __name__ == "__main__":
     a = 0.15 # radius
     theta = np.linspace(0, 2*np.pi, n)
     if testCase == 'vortex':
+
+        dt = 0.0025
+        plotcriteria = T
+
         uvel = uVortex
         vvel = vVortex
         initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
     elif testCase == 'zalesak':
+
+        dt = 0.25
+        plotcriteria = 628
+
         uvel = uZalesak
         vvel = vZalesak
 
@@ -150,19 +157,30 @@ if __name__ == "__main__":
         yinit = np.append(yinit, [a*np.sin(thetaZ2) + cy])
         initX = [xinit, yinit]
     elif testCase == 'pospos':
+
+        dt = 0.25
+        plotcriteria = 1
+
         u[:,:] = -1
         v[:,:] = -1
         a = 0.5
         initX = [a*np.cos(theta), a*np.sin(theta)]
 
     phi = init(phi, initX)
-    phi0 = phi
-
-    # Godunov, boken til sethien.
 
     for k in range(it):
-        if k == 0:
-            plottingContour("t = " + str(t) + ", it = " + str(k) + ", t/T = " + str(t/T), [x[0],x[-1]], [y[0],y[-1]])
+
+        print("iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}".format(k, t, totalTime, t/T))
+        if k%10 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.50:
+            plottingContour("t = {0:.2f}, it = {1}".format(t, k), [x[0],x[-1]], [y[0],y[-1]])
+
+        if k%reinitfreq == 0 and k != 0 and doreinit:
+            reinitStart = time.time()
+            phi = reinit(phi, sc.godunov)
+            reinitTime = time.time() - reinitStart
+            print("Reinitialization time = {0}".format(reinitTime))
+            totalTime += reinitTime
+            plottingContour("t = {0:.2f}, it = {1}, reinit".format(k*dt, k), [x[0],x[-1]], [y[0],y[-1]])
 
         startTime = time.time()
 
@@ -171,7 +189,9 @@ if __name__ == "__main__":
             v = np.fromfunction(vvel, (len(x), len(y)), dtype=int)
 
         # CFL condition
-        dt = CFL*(dx + dy)/(abs(u + v)).max()
+        dtmax = CFL*(dx + dy)/(abs(u + v)).max()
+        if dt > dtmax:
+            print('WARNING; dt too high at it = {0}, dt = {1}, dtmax = {2}'.format(k, dt, dtmax))
         # dt =5*10**-5 # From Claudio Walker article [a]
         # dt = 10**-3
         t += dt
@@ -180,14 +200,3 @@ if __name__ == "__main__":
 
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
-        print("iteration = {0}, time = {1:.5f}, iteration time = {2:.2f} , t/T = {3:.5f}".format(k, t, totalTime, t/T))
-        if k%10 == 0 or round(t/T, 3) == 1.00 or round(t/T, 3) == 0.50 and k != 0 :
-            plottingContour("t = {0:.2f} , it = {1}".format(t, k), [x[0],x[-1]], [y[0],y[-1]])
-
-        if k%20 == 0 and k != 0:
-            reinitStart = time.time()
-            phi = reinit(phi, sc.godunov, u, v)
-            reinitTime = time.time() - reinitStart
-            print("Reinitialization time = {0}".format(reinitTime))
-            totalTime += reinitTime
-            # plottingContour("t = {0:.2f} , it = {1}, reinit".format(k*dt, k), [x[0],x[-1]], [y[0],y[-1]])
