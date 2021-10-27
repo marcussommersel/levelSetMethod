@@ -311,8 +311,9 @@ def reinit(phi, scheme, u, v):
         phi = temp
         # plottingContour()
 
-        # phix, phiy = scheme(phi, u, v)
-        phiGradAbs = abs(phix + phiy)
+        # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        # phix, phiy = scheme(phi, S, S)
+        # phiGradAbs = abs(phix + phiy)
         # print("phiGrad = " + str(phiGradAbs))
 
     return phi
@@ -335,7 +336,7 @@ def plottingContour(title = '', limitx=[-1,1], limity=[-1,1]):
     plt.show()
 
 if __name__ == "__main__":
-    n = 128
+    n = 256
     tmax = 10 # number of timesteps in reinitialization
     it = 10001
     proj = "2D"
