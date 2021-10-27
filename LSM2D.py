@@ -5,7 +5,6 @@ from matplotlib import path
 import time
 
 def init(phi, init):
-
     p = path.Path(np.transpose(init))
     for i in range(len(x)):
         for j in range(len(y)):
@@ -87,7 +86,6 @@ if __name__ == "__main__":
     doreinit = False
     it = 10001
 
-
     CFL = 0.25
 
     proj = "2D"
@@ -109,13 +107,10 @@ if __name__ == "__main__":
 
     def uVortex(i,j):
         return -2*((np.sin(np.pi*x[i]))**2)*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T)
-
     def vVortex(i,j):
         return -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*((np.cos(np.pi*y[j]))**2)*np.cos(np.pi*t/T)
-
     def uZalesak(i,j):
         return -np.pi/628*(x[i]**2 + 2*y[j] - x[i] - 1)
-
     def vZalesak(i,j):
         return np.pi/628*(2*x[i] + y[j]**2 - 1 - y[j])
 
