@@ -1,9 +1,10 @@
+import schemes as sc
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import path
 import time
 
-def init(phi, init, c=0, r=0):
+def init(phi, init):
 
     p = path.Path(np.transpose(init))
     for i in range(len(x)):
@@ -12,259 +13,9 @@ def init(phi, init, c=0, r=0):
                 phi[i,j] = - min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
             else:
                 phi[i,j] = min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
-            # if (x[i] - c[0])**2 + (y[j] - c[1])**2 < r**2:
-            #     phi[i,j] = - min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
-            # else:
-            #     phi[i,j] = min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
-    return phi
-
-def TVDRK3(phi, scheme, ax, ay):
-
-    # first euler step
-    phix, phiy = scheme(phi, ax, ay)
-    n1 = phi - dt*(ax*phix + ay*phiy)
-
-    # second euler step
-    phix, phiy = scheme(n1, ax, ay)
-    n2 = n1 - dt*(ax*phix + ay*phiy)
-
-    # averaging step
-    n1_2 = 3/4*phi + 1/4*n2
-
-    # third euler step
-    phix, phiy = scheme(n1_2, ax, ay)
-    n3_2 = n1_2 - dt*(ax*phix + ay*phiy)
-
-    # second averaging step
-    temp =  1/3*phi + 2/3*n3_2
-
-    if (scheme) == weno:
-        temp = wenoBC(temp)
-
-    return temp
-
-def euler(phi, scheme, ax, ay):
-    phix, phiy = scheme(phi, ax, ay)
-    temp = phi - dt*(ax*phix + ay*phiy)
-
-    if (scheme) == weno:
-        temp = wenoBC(temp)
-
-    return temp
-
-def upwind(phi, ax, ay):
-    phix = np.zeros([len(x), len(y)])
-    phiy = np.zeros([len(x), len(y)])
-    for i in range(2, len(x)-2):
-        for j in range(2, len(y)-2):
-
-            if ax[i,j] >= 0:
-                phix[i, j] = (phi[i, j] - phi[i - 1, j])/dx
-            elif ax[i,j] < 0:
-                phix[i, j] = (phi[i + 1, j] - phi[i, j])/dx
-
-            if ay[i,j] >= 0:
-                phiy[i, j] = (phi[i, j] - phi[i, j - 1])/dy
-            elif ay[i,j] < 0:
-                phiy[i, j] = (phi[i, j + 1] - phi[i, j])/dy
-
-    return phix, phiy
-
-def upwind2(phi, ax, ay):
-    phix = np.zeros([len(x), len(y)])
-    phiy = np.zeros([len(x), len(y)])
-    for i in range(2, len(x)-2):
-        for j in range(2, len(y)-2):
-
-            if ax[i, j] >= 0:
-                phix[i, j] = (3*phi[i,j] - 4*phi[i-1, j] + phi[i-2, j])/(2*dx)
-            elif ax[i, j] < 0:
-                phix[i, j] = (-phi[i+2, j] + 4*phi[i+1, j] - 3*phi[i,j])/(2*dx)
-
-            if ay[i, j] >= 0:
-                phiy[i, j] = (3*phi[i,j] - 4*phi[i, j-1] + phi[i, j-2])/(2*dx)
-            elif ay[i, j] < 0:
-                phiy[i, j] = (-phi[i, j+2] + 4*phi[i, j+1] - 3*phi[i,j])/(2*dx)
-
-    return phix, phiy
-
-def central(phi, ax, ay):
-    phix = np.zeros([len(x), len(y)])
-    phiy = np.zeros([len(x), len(y)])
-    for i in range(2, len(x)-2):
-        for j in range(2, len(y)-2):
-
-            phix[i, j] = (phi[i + 1, j] - phi[i - 1, j])/(2*dx)
-            phiy[i, j] = (phi[i, j + 1] - phi[i, j - 1])/(2*dy)
-
-    return phix, phiy
-
-def godunov(phi, ax, ay):
-    phix = np.zeros([len(x), len(y)])
-    phiy = np.zeros([len(x), len(y)])
-    for i in range(2, len(x)-2):
-        for j in range(2, len(y)-2):
-            phix_m = (phi[i,j] - phi[i-1,j])/dx
-            phix_p = (phi[i+1,j] - phi[i,j])/dx
-            
-            phiy_m = (phi[i,j] - phi[i,j-1])/dy
-            phiy_p = (phi[i,j+1] - phi[i,j])/dy
-
-            if ax[i,j] >= 0:
-                phix[i,j] = np.sqrt(max(max(phix_m, 0)**2, min(phix_p, 0)**2))
-            elif ax[i,j] < 0:
-                phix[i,j] = np.sqrt(max(min(phix_m, 0)**2, max(phix_p, 0)**2))
-
-            if ay[i,j] >= 0:
-                phiy[i,j] = np.sqrt(max(max(phiy_m, 0)**2, min(phiy_p, 0)**2))
-            elif ay[i,j] < 0:
-                phiy[i,j] = np.sqrt(max(min(phiy_m, 0)**2, max(phiy_p, 0)**2))
-    
-    return phix, phiy
-
-def weno(phi, ax, ay):
-    phix = np.zeros([len(x), len(y)])
-    phiy = np.zeros([len(x), len(y)])
-    for i in range(2, len(x)-3):
-        for j in range(2, len(y)-3):
-
-            # WENO
-            if ax[i,j] >= 0:
-                v1 = (phi[i-2,j] - phi[i-3,j])/dx
-                v2 = (phi[i-1,j] - phi[i-2,j])/dx
-                v3 = (phi[i,j] - phi[i-1,j])/dx
-                v4 = (phi[i+1,j] - phi[i,j])/dx
-                v5 = (phi[i+2,j] - phi[i+1,j])/dx
-            elif ax[i,j] < 0:
-                v1 = (phi[i-1,j] - phi[i-2,j])/dx
-                v2 = (phi[i,j] - phi[i-1,j])/dx
-                v3 = (phi[i+1,j] - phi[i,j])/dx
-                v4 = (phi[i+2,j] - phi[i+1,j])/dx
-                v5 = (phi[i+3,j] - phi[i+2,j])/dx
-
-            S1 = 13/12*(v1 - 2*v2 + v3)**2 + 1/4*(v1 - 4*v2 + v3)**2
-            S2 = 13/12*(v2 - 2*v3 + v4)**2 + 1/4*(v2 - v4)**2
-            S3 = 13/12*(v3 - 2*v4 + v5)**2 + 1/4*(3*v3 - 4*v4 + v5)**2
-
-            epsilon = 10**-6*max(v1**2, v2**2, v3**2, v4**2, v5**2) + 10**-99
-
-            alpha1 = 0.1/(S1 + epsilon)**2
-            alpha2 = 0.6/(S2 + epsilon)**2
-            alpha3 = 0.3/(S3 + epsilon)**2
-
-            omega1 = alpha1/(alpha1 + alpha2 + alpha3)
-            omega2 = alpha2/(alpha1 + alpha2 + alpha3)
-            omega3 = alpha3/(alpha1 + alpha2 + alpha3)
-
-            phix1 = v1/3 - 7*v2/6 + 11*v3/6
-            phix2 = -v2/6 + 5*v3/6 + v4/3
-            phix3 = v3/3 + 5*v4/6 - v5/6
-
-            phix[i,j] = (omega1*phix1 + omega2*phix2 + omega3*phix3)
-
-            if ay[i,j] >= 0:
-                v1 = (phi[i,j-2] - phi[i,j-3])/dx
-                v2 = (phi[i,j-1] - phi[i,j-2])/dx
-                v3 = (phi[i,j] - phi[i,j-1])/dx
-                v4 = (phi[i,j+1] - phi[i,j])/dx
-                v5 = (phi[i,j+2] - phi[i,j+1])/dx
-            elif ay[i,j] < 0:
-                v1 = (phi[i,j-1] - phi[i,j-2])/dx
-                v2 = (phi[i,j] - phi[i,j-1])/dx
-                v3 = (phi[i,j+1] - phi[i,j])/dx
-                v4 = (phi[i,j+2] - phi[i,j+1])/dx
-                v5 = (phi[i,j+3] - phi[i,j+2])/dx
-
-            S1 = 13/12*(v1 - 2*v2 + v3)**2 + 1/4*(v1 - 4*v2 + v3)**2
-            S2 = 13/12*(v2 - 2*v3 + v4)**2 + 1/4*(v2 - v4)**2
-            S3 = 13/12*(v3 - 2*v4 + v5)**2 + 1/4*(3*v3 - 4*v4 + v5)**2
-
-            epsilon = 10**-6*max(v1**2, v2**2, v3**2, v4**2, v5**2) + 10**-99
-
-            alpha1 = 0.1/(S1 + epsilon)**2
-            alpha2 = 0.6/(S2 + epsilon)**2
-            alpha3 = 0.3/(S3 + epsilon)**2
-
-            omega1 = alpha1/(alpha1 + alpha2 + alpha3)
-            omega2 = alpha2/(alpha1 + alpha2 + alpha3)
-            omega3 = alpha3/(alpha1 + alpha2 + alpha3)
-
-            phiy1 = v1/3 - 7*v2/6 + 11*v3/6
-            phiy2 = -v2/6 + 5*v3/6 + v4/3
-            phiy3 = v3/3 + 5*v4/6 - v5/6
-
-            phiy[i,j] = (omega1*phiy1 + omega2*phiy2 + omega3*phiy3)
-
-    return phix, phiy
-
-def wenoBC(fun):
-
-    fun[2, :] = fun[3, :] - (fun[4, :]- fun[3, :])
-    fun[1, :] = fun[2, :] - (fun[3, :]- fun[2, :])
-    fun[0, :] = fun[1, :] - (fun[2, :]- fun[1, :])
-    fun[-3, :] = fun[-4, :] - (fun[-5, :]- fun[-4, :])
-    fun[-2, :] = fun[-3, :] - (fun[-4, :]- fun[-3, :])
-    fun[-1, :] = fun[-2, :] - (fun[-3, :]- fun[-2, :])
-
-    fun[:, 2] = fun[:, 3] - (fun[:, 4]- fun[:, 3])
-    fun[:, 1] = fun[:, 2] - (fun[:, 3]- fun[:, 2])
-    fun[:, 0] = fun[:, 1] - (fun[:, 2]- fun[:, 1])
-    fun[:, -3] = fun[:, -4] - (fun[:, -5]- fun[:, -4])
-    fun[:, -2] = fun[:, -3] - (fun[:, -4]- fun[:, -3])
-    fun[:, -1] = fun[:, -2] - (fun[:, -3]- fun[:, -2])
-
-    return fun
-
-def reinit2(phi, scheme, u, v):
-    dtau = 0.5*dx
-    S0 = phi/(np.sqrt(phi**2 + max(dx, dy)**2))
-    S = S0
-    epsilon = 10**-14
-    for k in range(tmax):
-
-        # TVDRK3
-
-        temp = np.zeros_like(phi)
-        n1 = np.zeros_like(phi)
-        n2 = np.zeros_like(phi)
-        n1_2 = np.zeros_like(phi)
-        n3_2 = np.zeros_like(phi)
-
-        # first euler step
-        phix, phiy = scheme(phi, S, S)
-        # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
-        n1 = phi - dtau*(S*phix*phix/abs(phix + phiy + epsilon) + S*phiy*phiy/abs(phix + phiy + epsilon) - S)
-
-        # second euler step
-        phix, phiy = scheme(n1, S, S)
-        # S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*max(dx, dy)**2)
-        n2 = n1 - dtau*(S*phix*phix/abs(phix + phiy + epsilon) + S*phiy*phiy/abs(phix + phiy + epsilon) - S)
-
-        # averaging step
-        n1_2 = 3/4*phi + 1/4*n2
-
-        # third euler step
-        phix, phiy = scheme(n1_2, S, S)
-        # S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*max(dx, dy)**2)
-        n3_2 = n1_2 - dtau*(S*phix*phix/abs(phix + phiy + epsilon) + S*phiy*phiy/abs(phix + phiy + epsilon) - S)
-
-        # second averaging step
-        temp = 1/3*phi + 2/3*n3_2
-
-        # temp =  phi - dt*S0*(np.sqrt((u*phix)**2 + (v*phiy)**2) - 1)
-
-        temp = wenoBC(temp)
-        phi = temp
-        # plottingContour()
-
-        phix, phiy = scheme(phi, u, v)
-        phiGradAbs = abs(phix + phiy)
-        # print("phiGrad = " + str(phiGradAbs))
-
     return phi
 
 def reinit(phi, scheme, u, v):
-    # temp = phi
     dtau = 0.5*dx
     # S0 = phi/(np.sqrt(phi**2 + max(dx, dy)**2))
     # S = S0
@@ -285,21 +36,21 @@ def reinit(phi, scheme, u, v):
         S = S0
 
         # first euler step
-        phix, phiy = scheme(phi, S, S)
-        S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        phix, phiy = scheme(phi, S, S, x, y, dx, dy)
+        # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
         n1 = phi - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # second euler step
-        phix, phiy = scheme(n1, S, S)
-        S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        phix, phiy = scheme(n1, S, S, x, y, dx, dy)
+        # S = n1/np.sqrt(n1**2 + abs(phix + phiy)**2*max(dx, dy)**2)
         n2 = n1 - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # averaging step
         n1_2 = 3/4*phi + 1/4*n2
 
         # third euler step
-        phix, phiy = scheme(n1_2, S, S)
-        S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        phix, phiy = scheme(n1_2, S, S, x, y, dx, dy)
+        # S = n1_2/np.sqrt(n1_2**2 + abs(phix + phiy)**2*max(dx, dy)**2)
         n3_2 = n1_2 - dtau*S*(np.sqrt(phix**2 + phiy**2) - 1)
 
         # second averaging step
@@ -307,14 +58,12 @@ def reinit(phi, scheme, u, v):
 
         # temp =  phi - dt*S0*(np.sqrt((u*phix)**2 + (v*phiy)**2) - 1)
 
-        temp = wenoBC(temp)
+        temp = sc.wenoBC(temp)
         phi = temp
-        # plottingContour()
 
-        # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
-        # phix, phiy = scheme(phi, S, S)
-        # phiGradAbs = abs(phix + phiy)
-        # print("phiGrad = " + str(phiGradAbs))
+        S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        phix, phiy = scheme(phi, S, S, x, y, dx, dy)
+        phiGradAbs = abs(phix + phiy)
 
     return phi
 
@@ -336,29 +85,28 @@ def plottingContour(title = '', limitx=[-1,1], limity=[-1,1]):
     plt.show()
 
 if __name__ == "__main__":
-    n = 256
+    n = 128
     tmax = 10 # number of timesteps in reinitialization
     it = 10001
+
+    CFL = 0.25
+
     proj = "2D"
     testCase = 'vortex'
-    epsilon = 10e-6
-
+    T = 2 # used in vortex-test
+    
     dx = 1/n
     dy = 1/n
-    CFL = 0.25
 
     x = np.linspace(0, 1, n)
     y = np.linspace(0.5, 1.5, n)
-
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
-
     phi = np.zeros([len(x), len(y)])
 
     totalTime = 0
     dt = 0
     t = 0
-    T = 2
 
     def uVortex(i,j):
         return -2*((np.sin(np.pi*x[i]))**2)*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T)
@@ -381,8 +129,6 @@ if __name__ == "__main__":
         uvel = uVortex
         vvel = vVortex
         initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
-        limx = [-1, 2]
-        limy = [-1, 2]
     elif testCase == 'zalesak':
         uvel = uZalesak
         vvel = vZalesak
@@ -403,17 +149,13 @@ if __name__ == "__main__":
         yinit = np.append(yinit, [y2, y2])
         yinit = np.append(yinit, [a*np.sin(thetaZ2) + cy])
         initX = [xinit, yinit]
-        limx = [0, 1]
-        limy = [0, 1]
     elif testCase == 'pospos':
         u[:,:] = -1
         v[:,:] = -1
         a = 0.5
         initX = [a*np.cos(theta), a*np.sin(theta)]
-        limx = [-1, 1]
-        limy = [-1, 1]
 
-    phi = init(phi, initX, [cx, cy], a)
+    phi = init(phi, initX)
     phi0 = phi
 
     # Godunov, boken til sethien.
@@ -434,17 +176,17 @@ if __name__ == "__main__":
         # dt = 10**-3
         t += dt
 
-        phi = TVDRK3(phi, weno, u, v)
+        phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
 
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
         print("iteration = {0}, time = {1:.5f}, iteration time = {2:.2f} , t/T = {3:.5f}".format(k, t, totalTime, t/T))
-        if k%213 == 0 or round(t/T, 4) == 1.000 or round(t/T, 4) == 0.500 and k != 0 :
+        if k%10 == 0 or round(t/T, 3) == 1.00 or round(t/T, 3) == 0.50 and k != 0 :
             plottingContour("t = {0:.2f} , it = {1}".format(t, k), [x[0],x[-1]], [y[0],y[-1]])
 
         if k%20 == 0 and k != 0:
             reinitStart = time.time()
-            phi = reinit(phi, godunov, u, v)
+            phi = reinit(phi, sc.godunov, u, v)
             reinitTime = time.time() - reinitStart
             print("Reinitialization time = {0}".format(reinitTime))
             totalTime += reinitTime
