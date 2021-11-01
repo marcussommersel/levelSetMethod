@@ -94,7 +94,10 @@ def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
         ax.contour3D(X, Y, phi, 50, cmap='coolwarm')
     plt.title(title)
     if save:
-        plt.savefig(('{0}, Reinit = {1} at freq = {2}, n = {3}, {4}.png'.format(title, tmax, reinitfreq, n, testCase)))
+        if doreinit:
+            plt.savefig(('{0}, n = {1}, {2}, Reinit iter = {3} at freq = {4}.png'.format(title, n, testCase, tmax, reinitfreq)))
+        else:
+            plt.savefig(('{0}, n = {1}, {2}, no Reinit.png'.format(title, n, testCase)))
     plt.show()
     return a
 
@@ -102,7 +105,7 @@ if __name__ == '__main__':
     n = 128
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 20
-    doreinit = False
+    doreinit = True
     dosave = True
     it = 10001
 
