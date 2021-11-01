@@ -62,28 +62,48 @@ def reinit(phi, scheme):
 
     return phi
 
-def plottingContour(title = '', limitx=[-1,1], limity=[-1,1]):
+def area(c):
+    a = 0 
+    x0,y0 = c[0]
+    for [x1,y1] in c[1:]:
+        dx = x1-x0
+        dy = y1-y0
+        a += 0.5*(y0*dx - x0*dy)
+        x0 = x1
+        y0 = y1
+    return a
+
+def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'b', label='Initial interface')
-        a1 = plt.contourf(x, y, np.transpose(phi), 0, cmap='gray')
-        plt.colorbar(a1)
+        c = plt.contour(x, y, np.transpose(phi), 0, cmap='gray')
+        # plt.colorbar(c)
+        plt.axis('equal')
         plt.xlim(limitx)
         plt.ylim(limity)
         plt.xlabel('x')
         plt.ylabel('y')
+        p = c.collections[1].get_paths()[0]
+        vs = p.vertices
+        a = area(vs)
+        print('Area = {0} for {1}'.format(a, title))
     elif proj == '3D':
         X, Y = np.meshgrid(x, y)
         fig = plt.figure()
         ax = plt.axes(projection='3d')
         ax.contour3D(X, Y, phi, 50, cmap='coolwarm')
     plt.title(title)
+    if save:
+        plt.savefig(('{0}, Reinit = {1} at freq = {2}, n = {3}, {4}.png'.format(title, tmax, reinitfreq, n, testCase)))
     plt.show()
+    return a
 
 if __name__ == '__main__':
     n = 128
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 20
     doreinit = False
+    dosave = True
     it = 10001
 
     CFL = 0.25
@@ -167,7 +187,11 @@ if __name__ == '__main__':
 
         print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
         if k%10 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.50:
-            plottingContour('t = {0:.2f}, it = {1}'.format(t, k), [x[0],x[-1]], [y[0],y[-1]])
+            a = plottingContour('t = {0:.2f}, it = {1}'.format(t, k), dosave, [x[0],x[-1]], [y[0],y[-1]])
+            if k == 0:
+                initialArea = a
+            else:
+                print('Area change = ' + str(100*initialArea/a-100) + '%')
 
         if k%reinitfreq == 0 and k != 0 and doreinit:
             reinitStart = time.time()
@@ -187,6 +211,7 @@ if __name__ == '__main__':
         dtmax = CFL*(dx + dy)/(abs(u + v)).max()
         if dt > dtmax:
             print('WARNING; dt too high at it = {0}, dt = {1}, dtmax = {2}'.format(k, dt, dtmax))
+            break
         # dt =5*10**-5 # From Claudio Walker article [a]
         # dt = 10**-3
         t += dt
