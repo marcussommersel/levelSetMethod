@@ -104,7 +104,7 @@ def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
 if __name__ == '__main__':
     n = 128
     tmax = 10 # number of timesteps in reinitialization
-    reinitfreq = 20
+    reinitfreq = 50
     doreinit = True
     dosave = True
     it = 10001
@@ -112,14 +112,14 @@ if __name__ == '__main__':
     CFL = 0.25
 
     proj = '2D'
-    testCase = 'vortex'
+    testCase = 'zalesak'
     T = 2 # used in vortex-test
-    
+
     dx = 1/n
     dy = 1/n
 
     x = np.linspace(0, 1, n)
-    y = np.linspace(0.5, 1.5, n)
+    y = np.linspace(0.25, 1.25, n)
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
@@ -189,12 +189,12 @@ if __name__ == '__main__':
     for k in range(it):
 
         print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
-        if k%10 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.50:
+        if k%10000 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.50:
             a = plottingContour('t = {0:.2f}, it = {1}'.format(t, k), dosave, [x[0],x[-1]], [y[0],y[-1]])
             if k == 0:
                 initialArea = a
             else:
-                print('Area change = ' + str(100*initialArea/a-100) + '%')
+                print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
 
         if k%reinitfreq == 0 and k != 0 and doreinit:
             reinitStart = time.time()
@@ -202,7 +202,7 @@ if __name__ == '__main__':
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
-            plottingContour('t = {0:.2f}, it = {1}, reinit'.format(k*dt, k), [x[0],x[-1]], [y[0],y[-1]])
+            # plottingContour('t = {0:.2f}, it = {1}, reinit'.format(k*dt, k), [x[0],x[-1]], [y[0],y[-1]])
 
         startTime = time.time()
 
