@@ -95,9 +95,9 @@ def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
     plt.title(title)
     if save:
         if doreinit:
-            plt.savefig(('{0}, n = {1}, {2}, Reinit iter = {3} at freq = {4}.png'.format(title, n, testCase, tmax, reinitfreq)))
+            plt.savefig(('figures/{0}, n = {1}, {2}, Reinit iter = {3} at freq = {4}.png'.format(title, n, testCase, tmax, reinitfreq)))
         else:
-            plt.savefig(('{0}, n = {1}, {2}, no Reinit.png'.format(title, n, testCase)))
+            plt.savefig(('figures/{0}, n = {1}, {2}, no Reinit.png'.format(title, n, testCase)))
     plt.show()
     return a
 

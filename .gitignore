@@ -2,3 +2,6 @@
 /helloWorld.py
 /figures
 /profile.prof
+__pycache__/schemes.cpython-37.pyc
+__pycache__/schemes.cpython-39.pyc
+__pycache__/snakevizzer.cpython-39.pyc
