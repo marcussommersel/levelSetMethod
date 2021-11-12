@@ -179,6 +179,69 @@ def weno(phi, ax, ay, x, y, dx, dy):
 
     return phix, phiy
 
+def wenoComp(phi, ax, ay, x, y, dx, dy):
+    phix = np.zeros([len(x), len(y)])
+    phiy = np.zeros([len(x), len(y)])
+
+    sign = np.sign(ax[3:-4,3:-4])
+
+    v1 = sign*phi[1:-6,3:-4] + (1-sign)/2*phi[2:-5,3:-4] - (1+sign)/2*phi[0:-7,3:-4]
+    v2 = sign*phi[2:-5,3:-4] + (1-sign)/2*phi[3:-4,3:-4] - (1+sign)/2*phi[1:-6,3:-4]
+    v3 = sign*phi[3:-4,3:-4] + (1-sign)/2*phi[4:-3,3:-4] - (1+sign)/2*phi[2:-5,3:-4]
+    v4 = sign*phi[4:-3,3:-4] + (1-sign)/2*phi[5:-2,3:-4] - (1+sign)/2*phi[3:-4,3:-4]
+    v5 = sign*phi[5:-2,3:-4] + (1-sign)/2*phi[6:-1,3:-4] - (1+sign)/2*phi[4:-3,3:-4]
+
+    S1 = 13/12*(v1 - 2*v2 + v3)**2 + 1/4*(v1 - 4*v2 + v3)**2
+    S2 = 13/12*(v2 - 2*v3 + v4)**2 + 1/4*(v2 - v4)**2
+    S3 = 13/12*(v3 - 2*v4 + v5)**2 + 1/4*(3*v3 - 4*v4 + v5)**2
+
+    epsilon = 10**-6*np.maximum.reduce([v1**2, v2**2, v3**2, v4**2, v5**2]) + 10**-99
+
+    alpha1 = 0.1/(S1 + epsilon)**2
+    alpha2 = 0.6/(S2 + epsilon)**2
+    alpha3 = 0.3/(S3 + epsilon)**2
+
+    omega1 = alpha1/(alpha1 + alpha2 + alpha3)
+    omega2 = alpha2/(alpha1 + alpha2 + alpha3)
+    omega3 = alpha3/(alpha1 + alpha2 + alpha3)
+
+    phix1 = v1/3 - 7*v2/6 + 11*v3/6
+    phix2 = -v2/6 + 5*v3/6 + v4/3
+    phix3 = v3/3 + 5*v4/6 - v5/6
+
+    phix[3:-4,3:-4] = (omega1*phix1 + omega2*phix2 + omega3*phix3)
+
+    sign = np.sign(ay[3:-4,3:-4])
+
+    v1 = sign*phi[3:-4,1:-6] + (1-sign)/2*phi[3:-4,2:-5] - (1+sign)/2*phi[3:-4,0:-7]
+    v2 = sign*phi[3:-4,2:-5] + (1-sign)/2*phi[3:-4,3:-4] - (1+sign)/2*phi[3:-4,1:-6]
+    v3 = sign*phi[3:-4,3:-4] + (1-sign)/2*phi[3:-4,4:-3] - (1+sign)/2*phi[3:-4,2:-5]
+    v4 = sign*phi[3:-4,4:-3] + (1-sign)/2*phi[3:-4,5:-2] - (1+sign)/2*phi[3:-4,3:-4]
+    v5 = sign*phi[3:-4,5:-2] + (1-sign)/2*phi[3:-4,6:-1] - (1+sign)/2*phi[3:-4,4:-3]
+    
+    S1 = 13/12*(v1 - 2*v2 + v3)**2 + 1/4*(v1 - 4*v2 + v3)**2
+    S2 = 13/12*(v2 - 2*v3 + v4)**2 + 1/4*(v2 - v4)**2
+    S3 = 13/12*(v3 - 2*v4 + v5)**2 + 1/4*(3*v3 - 4*v4 + v5)**2
+
+    epsilon = 10**-6*np.maximum.reduce([v1**2, v2**2, v3**2, v4**2, v5**2]) + 10**-99
+
+    alpha1 = 0.1/(S1 + epsilon)**2
+    alpha2 = 0.6/(S2 + epsilon)**2
+    alpha3 = 0.3/(S3 + epsilon)**2
+
+    omega1 = alpha1/(alpha1 + alpha2 + alpha3)
+    omega2 = alpha2/(alpha1 + alpha2 + alpha3)
+    omega3 = alpha3/(alpha1 + alpha2 + alpha3)
+
+    phiy1 = v1/3 - 7*v2/6 + 11*v3/6
+    phiy2 = -v2/6 + 5*v3/6 + v4/3
+    phiy3 = v3/3 + 5*v4/6 - v5/6
+
+    phiy[3:-4,3:-4] = (omega1*phiy1 + omega2*phiy2 + omega3*phiy3)
+
+    return phix, phiy
+
+
 def wenoBC(fun):
 
     fun[2, :] = fun[3, :] - (fun[4, :]- fun[3, :])
