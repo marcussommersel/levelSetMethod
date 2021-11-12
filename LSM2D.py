@@ -102,24 +102,24 @@ def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
     return a
 
 if __name__ == '__main__':
-    n = 256
+    n = 256*2
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 50
     doreinit = True
     dosave = False
-    it = 10001
+    it = 100001
 
     CFL = 0.25
 
     proj = '2D'
-    testCase = 'zalesak'
+    testCase = 'vortex'
     T = 2 # used in vortex-test
 
     dx = 1/n
     dy = 1/n
 
     x = np.linspace(0, 1, n)
-    y = np.linspace(0, 1, n)
+    y = np.linspace(0.5, 1.5, n)
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
@@ -147,20 +147,24 @@ if __name__ == '__main__':
     # Åsmund Ervik:
     cx = 0.5
     cy = 0.5
-    a = 1/3
+
 
     theta = np.linspace(0, 2*np.pi, n)
     if testCase == 'vortex':
 
-        dt = 0.0025
+        a = 0.15
+        #dt = 0.0025
+        dt = 0.0005
         plotcriteria = T
 
         uvel = uVortex
         vvel = vVortex
+        
         initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
     elif testCase == 'zalesak':
 
         dt = 0.005
+        a = 1/3
         # plotcriteria = 628
         plotcriteria = 20
 
@@ -197,7 +201,8 @@ if __name__ == '__main__':
 
     for k in range(it):
 
-        print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
+        if k%100 == 0:
+            print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
         if k%1000 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.25:
             a = plottingContour('t = {0:.2f}, it = {1}'.format(t, k), dosave, [x[0],x[-1]], [y[0],y[-1]])
             if k == 0:
@@ -207,11 +212,11 @@ if __name__ == '__main__':
 
         if k%reinitfreq == 0 and k != 0 and doreinit:
             reinitStart = time.time()
-            phi = reinit(phi, sc.godunov)
+            phi = reinit(phi, sc.godunovComp)
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
-            # plottingContour('t = {0:.2f}, it = {1}, reinit'.format(k*dt, k), [x[0],x[-1]], [y[0],y[-1]])
+            # a = plottingContour('t = {0:.2f}, it = {1}, reinit'.format(k*dt, k), dosave, [x[0],x[-1]], [y[0],y[-1]])
 
         startTime = time.time()
 
@@ -228,7 +233,7 @@ if __name__ == '__main__':
         # dt = 10**-3
         t += dt
 
-        phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
+        phi = sc.TVDRK3(phi, sc.wenoComp, u, v, x, y, dx, dy, dt)
 
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
