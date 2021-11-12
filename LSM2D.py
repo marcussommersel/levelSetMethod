@@ -102,11 +102,11 @@ def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
     return a
 
 if __name__ == '__main__':
-    n = 128
+    n = 256
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 50
     doreinit = True
-    dosave = True
+    dosave = False
     it = 10001
 
     CFL = 0.25
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     dy = 1/n
 
     x = np.linspace(0, 1, n)
-    y = np.linspace(0.25, 1.25, n)
+    y = np.linspace(0, 1, n)
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
@@ -133,14 +133,22 @@ if __name__ == '__main__':
     def vVortex(i,j):
         return -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*((np.cos(np.pi*y[j]))**2)*np.cos(np.pi*t/T)
     def uZalesak(i,j):
-        return -np.pi/628*(x[i]**2 + 2*y[j] - x[i] - 1)
+        # return -np.pi/628*(x[i]**2 + 2*y[j] - x[i] - 1) # Claudio Walker
+        return np.pi/10*(0.5 - y[j])
     def vZalesak(i,j):
-        return np.pi/628*(2*x[i] + y[j]**2 - 1 - y[j])
+        # return np.pi/628*(2*x[i] + y[j]**2 - 1 - y[j]) # Claudio Walker
+        return np.pi/10*(x[i] - 0.5)
 
     # initial boundary
-    cx = 0.5 # center of initial boundary
-    cy = 0.75
-    a = 0.15 # radius
+    # Claudio Walker:
+    # cx = 0.5 # center of initial boundary (Maybe incorporate for vortex?)
+    # cy = 0.75
+    # a = 0.15 # radius
+    # Åsmund Ervik:
+    cx = 0.5
+    cy = 0.5
+    a = 1/3
+
     theta = np.linspace(0, 2*np.pi, n)
     if testCase == 'vortex':
 
@@ -152,8 +160,9 @@ if __name__ == '__main__':
         initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
     elif testCase == 'zalesak':
 
-        dt = 0.25
-        plotcriteria = 628
+        dt = 0.005
+        # plotcriteria = 628
+        plotcriteria = 20
 
         uvel = uZalesak
         vvel = vZalesak
@@ -189,7 +198,7 @@ if __name__ == '__main__':
     for k in range(it):
 
         print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
-        if k%10000 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.50:
+        if k%1000 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.25:
             a = plottingContour('t = {0:.2f}, it = {1}'.format(t, k), dosave, [x[0],x[-1]], [y[0],y[-1]])
             if k == 0:
                 initialArea = a
