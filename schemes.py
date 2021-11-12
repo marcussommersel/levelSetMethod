@@ -104,11 +104,27 @@ def godunov(phi, ax, ay, x, y, dx, dy):
     
     return phix, phiy
 
+def godunovComp(phi, ax, ay, x, y, dx, dy):
+    phix = np.zeros([len(x), len(y)])
+    phiy = np.zeros([len(x), len(y)])
+
+    phix_m = (phi[2:-2,2:-2] - phi[1:-3,2:-2])/dx
+    phix_p = (phi[3:-1,2:-2] - phi[2:-2,2:-2])/dx
+    
+    phiy_m = (phi[2:-2,2:-2] - phi[2:-2,1:-3])/dy
+    phiy_p = (phi[2:-2,3:-1] - phi[2:-2,2:-2])/dy
+
+    phix[2:-2,2:-2] = (ax[2:-2,2:-2] >= 0)*np.sqrt(np.maximum(np.maximum(phix_m, 0)**2, np.minimum(phix_p, 0)**2)) + (ax[2:-2,2:-2] < 0)*np.sqrt(np.maximum(np.minimum(phix_m, 0)**2, np.maximum(phix_p, 0)**2))
+
+    phiy[2:-2,2:-2] = (ay[2:-2,2:-2] >= 0)*np.sqrt(np.maximum(np.maximum(phiy_m, 0)**2, np.minimum(phiy_p, 0)**2)) + (ay[2:-2,2:-2] < 0)*np.sqrt(np.maximum(np.minimum(phiy_m, 0)**2, np.maximum(phiy_p, 0)**2))
+    
+    return phix, phiy
+
 def weno(phi, ax, ay, x, y, dx, dy):
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
-    for i in range(2, len(x)-3):
-        for j in range(2, len(y)-3):
+    for i in range(3, len(x)-3):
+        for j in range(3, len(y)-3):
 
             # WENO
             if ax[i,j] >= 0:
@@ -185,11 +201,11 @@ def wenoComp(phi, ax, ay, x, y, dx, dy):
 
     sign = np.sign(ax[3:-4,3:-4])
 
-    v1 = sign*phi[1:-6,3:-4] + (1-sign)/2*phi[2:-5,3:-4] - (1+sign)/2*phi[0:-7,3:-4]
-    v2 = sign*phi[2:-5,3:-4] + (1-sign)/2*phi[3:-4,3:-4] - (1+sign)/2*phi[1:-6,3:-4]
-    v3 = sign*phi[3:-4,3:-4] + (1-sign)/2*phi[4:-3,3:-4] - (1+sign)/2*phi[2:-5,3:-4]
-    v4 = sign*phi[4:-3,3:-4] + (1-sign)/2*phi[5:-2,3:-4] - (1+sign)/2*phi[3:-4,3:-4]
-    v5 = sign*phi[5:-2,3:-4] + (1-sign)/2*phi[6:-1,3:-4] - (1+sign)/2*phi[4:-3,3:-4]
+    v1 = (sign*phi[1:-6,3:-4] + (1-sign)/2*phi[2:-5,3:-4] - (1+sign)/2*phi[0:-7,3:-4])/dx
+    v2 = (sign*phi[2:-5,3:-4] + (1-sign)/2*phi[3:-4,3:-4] - (1+sign)/2*phi[1:-6,3:-4])/dx
+    v3 = (sign*phi[3:-4,3:-4] + (1-sign)/2*phi[4:-3,3:-4] - (1+sign)/2*phi[2:-5,3:-4])/dx
+    v4 = (sign*phi[4:-3,3:-4] + (1-sign)/2*phi[5:-2,3:-4] - (1+sign)/2*phi[3:-4,3:-4])/dx
+    v5 = (sign*phi[5:-2,3:-4] + (1-sign)/2*phi[6:-1,3:-4] - (1+sign)/2*phi[4:-3,3:-4])/dx
 
     S1 = 13/12*(v1 - 2*v2 + v3)**2 + 1/4*(v1 - 4*v2 + v3)**2
     S2 = 13/12*(v2 - 2*v3 + v4)**2 + 1/4*(v2 - v4)**2
@@ -213,11 +229,11 @@ def wenoComp(phi, ax, ay, x, y, dx, dy):
 
     sign = np.sign(ay[3:-4,3:-4])
 
-    v1 = sign*phi[3:-4,1:-6] + (1-sign)/2*phi[3:-4,2:-5] - (1+sign)/2*phi[3:-4,0:-7]
-    v2 = sign*phi[3:-4,2:-5] + (1-sign)/2*phi[3:-4,3:-4] - (1+sign)/2*phi[3:-4,1:-6]
-    v3 = sign*phi[3:-4,3:-4] + (1-sign)/2*phi[3:-4,4:-3] - (1+sign)/2*phi[3:-4,2:-5]
-    v4 = sign*phi[3:-4,4:-3] + (1-sign)/2*phi[3:-4,5:-2] - (1+sign)/2*phi[3:-4,3:-4]
-    v5 = sign*phi[3:-4,5:-2] + (1-sign)/2*phi[3:-4,6:-1] - (1+sign)/2*phi[3:-4,4:-3]
+    v1 = (sign*phi[3:-4,1:-6] + (1-sign)/2*phi[3:-4,2:-5] - (1+sign)/2*phi[3:-4,0:-7])/dy
+    v2 = (sign*phi[3:-4,2:-5] + (1-sign)/2*phi[3:-4,3:-4] - (1+sign)/2*phi[3:-4,1:-6])/dy
+    v3 = (sign*phi[3:-4,3:-4] + (1-sign)/2*phi[3:-4,4:-3] - (1+sign)/2*phi[3:-4,2:-5])/dy
+    v4 = (sign*phi[3:-4,4:-3] + (1-sign)/2*phi[3:-4,5:-2] - (1+sign)/2*phi[3:-4,3:-4])/dy
+    v5 = (sign*phi[3:-4,5:-2] + (1-sign)/2*phi[3:-4,6:-1] - (1+sign)/2*phi[3:-4,4:-3])/dy
     
     S1 = 13/12*(v1 - 2*v2 + v3)**2 + 1/4*(v1 - 4*v2 + v3)**2
     S2 = 13/12*(v2 - 2*v3 + v4)**2 + 1/4*(v2 - v4)**2
