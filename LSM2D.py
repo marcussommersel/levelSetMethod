@@ -112,7 +112,7 @@ if __name__ == '__main__':
     CFL = 0.25
 
     proj = '2D'
-    testCase = 'vortex'
+    testCase = 'zalesak'
     T = 2 # used in vortex-test
 
     dx = 1/n
@@ -212,7 +212,7 @@ if __name__ == '__main__':
 
         if k%reinitfreq == 0 and k != 0 and doreinit:
             reinitStart = time.time()
-            phi = reinit(phi, sc.godunovComp)
+            phi = reinit(phi, sc.godunov)
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
@@ -233,7 +233,7 @@ if __name__ == '__main__':
         # dt = 10**-3
         t += dt
 
-        phi = sc.TVDRK3(phi, sc.wenoComp, u, v, x, y, dx, dy, dt)
+        phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
 
         currentTime = time.time() - startTime
         totalTime += currentTime # plotting not included
