@@ -1,8 +1,10 @@
+from numpy.lib.function_base import meshgrid
 import schemes as sc
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import path
 import time
+from skimage import measure
 
 def init(phi, init):
     p = path.Path(np.transpose(init))
@@ -73,20 +75,46 @@ def area(c):
         y0 = y1
     return a
 
+def normal(phi, ax, ay):
+    phix, phiy = sc.weno(phi, ax, ay, x, y, dx, dy)
+    return phix/abs(phix), phiy/abs(phiy)
+
+def interface(phi, ax, ay):
+    nx, ny = normal(phi, ax, ay)
+    X, Y = meshgrid(x,y)
+    XC = X - phi*nx
+    YC = Y - phi*ny
+    plt.plot(XC, YC)
+    plt.show()
+
+def findInterface(phi):
+    xc = np.zeros(len(x))
+    yc = np.zeros(len(y))
+    for i in range(len(phi[:,0])):
+        for j in range(len(phi[0,:])):
+            if phi[i,j] <= 0 and phi[i,j+1]:
+                xc[i] = x[i]
+                yc[j] = y[j]
+    plt.plot(xc, yc)
+    plt.show()
+
 def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'b', label='Initial interface')
         c = plt.contour(x, y, np.transpose(phi), 0, cmap='gray')
         # plt.colorbar(c)
         plt.axis('equal')
-        plt.xlim(limitx)
-        plt.ylim(limity)
+        # plt.xlim(limitx)
+        # plt.ylim(limity)
         plt.xlabel('x')
         plt.ylabel('y')
         p = c.collections[1].get_paths()[0]
         vs = p.vertices
         a = area(vs)
         print('Area = {0} for {1}'.format(a, title))
+        con = measure.find_contours(phi, 0)
+        for contour in con:
+            plt.plot(contour[:, 0]/(n-1), contour[:, 1]/(n-1), 'r', linewidth=2)
     elif proj == '3D':
         X, Y = np.meshgrid(x, y)
         fig = plt.figure()
@@ -102,7 +130,7 @@ def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
     return a
 
 if __name__ == '__main__':
-    n = 256*2
+    n = 256
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 50
     doreinit = True
@@ -119,7 +147,7 @@ if __name__ == '__main__':
     dy = 1/n
 
     x = np.linspace(0, 1, n)
-    y = np.linspace(0.5, 1.5, n)
+    y = np.linspace(0, 1, n)
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
@@ -139,20 +167,13 @@ if __name__ == '__main__':
         # return np.pi/628*(2*x[i] + y[j]**2 - 1 - y[j]) # Claudio Walker
         return np.pi/10*(x[i] - 0.5)
 
-    # initial boundary
-    # Claudio Walker:
-    # cx = 0.5 # center of initial boundary (Maybe incorporate for vortex?)
-    # cy = 0.75
-    # a = 0.15 # radius
-    # Åsmund Ervik:
-    cx = 0.5
-    cy = 0.5
-
-
     theta = np.linspace(0, 2*np.pi, n)
     if testCase == 'vortex':
 
+        # Claudio Walker:
         a = 0.15
+        cx = 0.5
+        cy = 0.75
         #dt = 0.0025
         dt = 0.0005
         plotcriteria = T
@@ -163,6 +184,9 @@ if __name__ == '__main__':
         initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
     elif testCase == 'zalesak':
 
+        # Åsmund Ervik:
+        cx = 0.5
+        cy = 0.5
         dt = 0.005
         a = 1/3
         # plotcriteria = 628
@@ -203,8 +227,13 @@ if __name__ == '__main__':
 
         if k%100 == 0:
             print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
-        if k%1000 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.25:
+        if k%1 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.25:
+            # findInterface(phi)
             a = plottingContour('t = {0:.2f}, it = {1}'.format(t, k), dosave, [x[0],x[-1]], [y[0],y[-1]])
+            # con = measure.find_contours(phi, 0)
+            # for contour in con:
+            #     plt.plot(contour[:, 1], contour[:, 0], linewidth=2)
+            # plt.show()
             if k == 0:
                 initialArea = a
             else:
