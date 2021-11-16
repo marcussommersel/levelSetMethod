@@ -1,4 +1,3 @@
-from numpy.lib.function_base import meshgrid
 import schemes as sc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,8 +17,6 @@ def init(phi, init):
 
 def reinit(phi, scheme):
     dtau = 0.5*dx
-    # S0 = phi/(np.sqrt(phi**2 + 2*dx**2)) # from Karl Yngve Lervåg (2013)
-    # S = S0
     for k in range(tmax):
 
         # TVDRK3
@@ -58,63 +55,36 @@ def reinit(phi, scheme):
         temp = sc.wenoBC(temp)
         phi = temp
 
-        S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
-        phix, phiy = scheme(phi, S, S, x, y, dx, dy)
-        phiGradAbs = abs(phix + phiy)
+        # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
+        # phix, phiy = scheme(phi, S, S, x, y, dx, dy)
+        # phiGradAbs = abs(phix + phiy)
 
     return phi
 
 def area(c):
-    a = 0 
-    x0,y0 = c[0]
-    for [x1,y1] in c[1:]:
-        dx = x1-x0
-        dy = y1-y0
-        a += 0.5*(y0*dx - x0*dy)
-        x0 = x1
-        y0 = y1
-    return a
+    a = 0
+    x1 = c[:, 0]/(n-1)
+    y1 = c[:, 1]/(n-1)
+    for i in range(len(x1)-1):
+        dx = x1[i+1]-x1[i]
+        dy = y1[i+1]-y1[i]
+        a += 0.5*(y1[i]*dx - x1[i]*dy)
+    return abs(a)
 
-def normal(phi, ax, ay):
-    phix, phiy = sc.weno(phi, ax, ay, x, y, dx, dy)
-    return phix/abs(phix), phiy/abs(phiy)
-
-def interface(phi, ax, ay):
-    nx, ny = normal(phi, ax, ay)
-    X, Y = meshgrid(x,y)
-    XC = X - phi*nx
-    YC = Y - phi*ny
-    plt.plot(XC, YC)
-    plt.show()
-
-def findInterface(phi):
-    xc = np.zeros(len(x))
-    yc = np.zeros(len(y))
-    for i in range(len(phi[:,0])):
-        for j in range(len(phi[0,:])):
-            if phi[i,j] <= 0 and phi[i,j+1]:
-                xc[i] = x[i]
-                yc[j] = y[j]
-    plt.plot(xc, yc)
-    plt.show()
+def contour(fun):
+    return np.squeeze(np.asarray(measure.find_contours(fun, 0)))
 
 def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'b', label='Initial interface')
-        c = plt.contour(x, y, np.transpose(phi), 0, cmap='gray')
-        # plt.colorbar(c)
         plt.axis('equal')
-        # plt.xlim(limitx)
-        # plt.ylim(limity)
+        plt.xlim(limitx)
+        plt.ylim(limity)
         plt.xlabel('x')
         plt.ylabel('y')
-        p = c.collections[1].get_paths()[0]
-        vs = p.vertices
-        a = area(vs)
-        print('Area = {0} for {1}'.format(a, title))
-        con = measure.find_contours(phi, 0)
-        for contour in con:
-            plt.plot(contour[:, 0]/(n-1), contour[:, 1]/(n-1), 'r', linewidth=2)
+        con = contour(phi)
+        plt.plot(con[:, 0]/(n-1), con[:, 1]/(n-1), 'r', linewidth=2, label='Current interface')
+        plt.legend()
     elif proj == '3D':
         X, Y = np.meshgrid(x, y)
         fig = plt.figure()
@@ -127,7 +97,6 @@ def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
         else:
             plt.savefig(('figures/{0}, n = {1}, {2}, no Reinit.png'.format(title, n, testCase)))
     plt.show()
-    return a
 
 if __name__ == '__main__':
     n = 256
@@ -222,22 +191,20 @@ if __name__ == '__main__':
         initX = [a*np.cos(theta), a*np.sin(theta)]
 
     phi = init(phi, initX)
+    con = contour(phi)
+    initialArea = area(phi)
 
     for k in range(it):
 
         if k%100 == 0:
             print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
         if k%1 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.25:
-            # findInterface(phi)
-            a = plottingContour('t = {0:.2f}, it = {1}'.format(t, k), dosave, [x[0],x[-1]], [y[0],y[-1]])
-            # con = measure.find_contours(phi, 0)
-            # for contour in con:
-            #     plt.plot(contour[:, 1], contour[:, 0], linewidth=2)
-            # plt.show()
-            if k == 0:
-                initialArea = a
-            else:
-                print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
+            title = 't = {0:.3f}, it = {1}'.format(t, k)
+            plottingContour(title, dosave, [x[0],x[-1]], [y[0],y[-1]])
+            con = contour(phi)
+            a = area(con)
+            print('Area = {0} for {1}'.format(a, title))
+            print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
 
         if k%reinitfreq == 0 and k != 0 and doreinit:
             reinitStart = time.time()
@@ -245,7 +212,6 @@ if __name__ == '__main__':
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
-            # a = plottingContour('t = {0:.2f}, it = {1}, reinit'.format(k*dt, k), dosave, [x[0],x[-1]], [y[0],y[-1]])
 
         startTime = time.time()
 
