@@ -61,20 +61,40 @@ def reinit(phi, scheme):
 
     return phi
 
-def area(c):
+def area(xval, yval):
     a = 0
-    x1 = c[:, 0]/(n-1)
-    y1 = c[:, 1]/(n-1)
+    x1 = xval/(n-1)
+    y1 = yval/(n-1)
+    # x1 = c[:, 0]/(n-1)
+    # y1 = c[:, 1]/(n-1)
     for i in range(len(x1)-1):
         dx = x1[i+1]-x1[i]
         dy = y1[i+1]-y1[i]
         a += 0.5*(y1[i]*dx - x1[i]*dy)
     return abs(a)
 
-def contour(fun):
-    return np.squeeze(np.asarray(measure.find_contours(fun, 0)))
+def contour(fun): 
+    c = measure.find_contours(fun, 0)
+    if len(c) > 1: # Fix for cases where function finds several contours
+        c = c[0]
+        # c = np.append(c[0], c[1])
+        # if c.dtype == 'float64':
+        #     break
+    con = np.asarray(c, dtype='float64').reshape(-1)
 
-def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
+    #     con = np.asarray(con).reshape(-1)
+    xval = con[0::2]   
+    yval = con[1::2]
+    return xval, yval
+    # return np.array(c).ravel()
+    # con = np.squeeze(np.asarray(c))
+    # return con
+
+def plottingContour(title = '', case='', save=False, limitx=[-1,1], limity=[-1,1]):
+    if case == 'vortex':
+        yoffset = 0.25
+    else:
+        yoffset = 0
     if proj == '2D':
         plt.plot(initX[0], initX[1], 'b', label='Initial interface')
         plt.axis('equal')
@@ -82,8 +102,10 @@ def plottingContour(title = '', save=False, limitx=[-1,1], limity=[-1,1]):
         plt.ylim(limity)
         plt.xlabel('x')
         plt.ylabel('y')
-        con = contour(phi)
-        plt.plot(con[:, 0]/(n-1), con[:, 1]/(n-1), 'r', linewidth=2, label='Current interface')
+        xval, yval = contour(phi)
+        
+        # plt.plot(con[:, 0]/(n-1), con[:, 1]/(n-1) + yoffset, 'r', linewidth=2, label='Current interface')
+        plt.plot(xval/(n-1), yval/(n-1) + yoffset, 'r', linewidth=2, label='Current interface')
         plt.legend()
     elif proj == '3D':
         X, Y = np.meshgrid(x, y)
@@ -116,7 +138,10 @@ if __name__ == '__main__':
     dy = 1/n
 
     x = np.linspace(0, 1, n)
-    y = np.linspace(0, 1, n)
+    if testCase == 'vortex':
+        y = np.linspace(0.25, 1.25, n)
+    else:
+        y = np.linspace(0, 1, n)
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
@@ -126,9 +151,11 @@ if __name__ == '__main__':
     t = 0
 
     def uVortex(i,j):
-        return -2*((np.sin(np.pi*x[i]))**2)*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T)
+        return -2*((np.sin(np.pi*x[i]))**2)*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T) # Claudio Walker
+        # return -2*(np.sin(np.pi*x[i] - 0.5*np.pi))**2*np.cos(np.pi*y[j] - 0.5*np.pi)*np.sin(np.pi*y[j] - 0.5*np.pi)
     def vVortex(i,j):
-        return -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*((np.cos(np.pi*y[j]))**2)*np.cos(np.pi*t/T)
+        return -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*((np.cos(np.pi*y[j]))**2)*np.cos(np.pi*t/T) # Claudio Walker
+        # return -2*(np.cos(np.pi*y[j] - 0.5*np.pi))**2*np.sin(np.pi*x[i] - 0.5*np.pi)*np.cos(np.pi*x[i] - 0.5*np.pi)
     def uZalesak(i,j):
         # return -np.pi/628*(x[i]**2 + 2*y[j] - x[i] - 1) # Claudio Walker
         return np.pi/10*(0.5 - y[j])
@@ -164,8 +191,8 @@ if __name__ == '__main__':
         uvel = uZalesak
         vvel = vZalesak
 
-        width = 0.05
-        length = 0.25 # values from Claudio Walker
+        width = a/3 # 0.05
+        length = width*5 # 0.25 # values from Claudio Walker
         thetaZ1 = np.linspace(0, 3/2*np.pi - np.arcsin(0.5*width/a), n)
         thetaZ2 = np.linspace(3/2*np.pi + np.arcsin(0.5*width/a), 2*np.pi, n)
         x1 = -width/2 + cx
@@ -191,18 +218,22 @@ if __name__ == '__main__':
         initX = [a*np.cos(theta), a*np.sin(theta)]
 
     phi = init(phi, initX)
-    con = contour(phi)
-    initialArea = area(phi)
-
+    # con = contour(phi)
+    # initialArea = area(con)
+    xval, yval = contour(phi)
+    initialArea = area(xval, yval)
+    print("Initial area = {0}".format(initialArea))
     for k in range(it):
 
         if k%100 == 0:
             print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
-        if k%1 == 0 or round(t/plotcriteria, 3) == 1.00 or round(t/plotcriteria, 3) == 0.25:
+        if k%1000 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
             title = 't = {0:.3f}, it = {1}'.format(t, k)
-            plottingContour(title, dosave, [x[0],x[-1]], [y[0],y[-1]])
-            con = contour(phi)
-            a = area(con)
+            plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
+            # con = contour(phi)
+            # a = area(con)
+            xval, yval = contour(phi)
+            a = area(xval, yval)
             print('Area = {0} for {1}'.format(a, title))
             print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
 
