@@ -65,9 +65,7 @@ def area(xval, yval):
     a = 0
     x1 = xval/(n-1)
     y1 = yval/(n-1)
-    # x1 = c[:, 0]/(n-1)
-    # y1 = c[:, 1]/(n-1)
-    for i in range(len(x1)-1):
+    for i in range(len(x1)-1): # Check vector formulation
         dx = x1[i+1]-x1[i]
         dy = y1[i+1]-y1[i]
         a += 0.5*(y1[i]*dx - x1[i]*dy)
@@ -75,79 +73,83 @@ def area(xval, yval):
 
 def contour(fun): 
     c = measure.find_contours(fun, 0)
-    if len(c) > 1: # Fix for cases where function finds several contours
+    if len(c) > 1 and testCase == 'zalesak': # Fix for cases where function finds several contours, test if happens for rounded corners.
         c = c[0]
-        # c = np.append(c[0], c[1])
-        # if c.dtype == 'float64':
-        #     break
-    con = np.asarray(c, dtype='float64').reshape(-1)
+        print("Several contours found! dt might be too high.")
+    elif len(c) > 1:
+        maxContours = 100
+        count = 0
+        while count < maxContours:
+            c = np.append(c[0], c[1])
+            if c.dtype == 'float64':
+                break
+            count += 1
 
-    #     con = np.asarray(con).reshape(-1)
-    xval = con[0::2]   
+    con = np.asarray(c, dtype='float64').reshape(-1)
+    xval = con[0::2]
     yval = con[1::2]
     return xval, yval
-    # return np.array(c).ravel()
-    # con = np.squeeze(np.asarray(c))
-    # return con
 
-def plottingContour(title = '', case='', save=False, limitx=[-1,1], limity=[-1,1]):
-    if case == 'vortex':
-        yoffset = 0.25
-    else:
-        yoffset = 0
-    if proj == '2D':
-        plt.plot(initX[0], initX[1], 'b', label='Initial interface')
-        plt.axis('equal')
-        plt.xlim(limitx)
-        plt.ylim(limity)
-        plt.xlabel('x')
-        plt.ylabel('y')
-        xval, yval = contour(phi)
-        
-        # plt.plot(con[:, 0]/(n-1), con[:, 1]/(n-1) + yoffset, 'r', linewidth=2, label='Current interface')
-        plt.plot(xval/(n-1), yval/(n-1) + yoffset, 'r', linewidth=2, label='Current interface')
-        plt.legend()
-    elif proj == '3D':
+def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1]):
+    if proj == '3D': # Only for testing purposes
         X, Y = np.meshgrid(x, y)
         fig = plt.figure()
         ax = plt.axes(projection='3d')
         ax.contour3D(X, Y, phi, 50, cmap='coolwarm')
+        plt.show()
+        return
+    if case == 'vortex':
+        yoffset = y[0]
+    else:
+        yoffset = 0
+    plt.axis([limitx[0], limitx[1], limity[0], limity[1]])
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.plot(initX[0], initX[1], 'b', label='Initial interface')
+    xval, yval = contour(phi)
+    plt.plot(xval/(n-1)*(x[-1] - x[0]), yval/(n-1)*(y[-1] - y[0]) + yoffset, 'r', label='Current interface') # Add scaling to contour()?
+    plt.legend()
     plt.title(title)
+
     if save:
+        a = area(xval, yval)
         if doreinit:
-            plt.savefig(('figures/{0}, n = {1}, {2}, Reinit iter = {3} at freq = {4}.png'.format(title, n, testCase, tmax, reinitfreq)))
+            plt.savefig(('figures/{0}, n = {1}, {2}, A = {3} Reinit iter = {4} at freq = {5}.png'.format(title, n, testCase, a, tmax, reinitfreq)))
         else:
-            plt.savefig(('figures/{0}, n = {1}, {2}, no Reinit.png'.format(title, n, testCase)))
-    plt.show()
+            plt.savefig(('figures/{0}, n = {1}, {2}, A = {3}, no Reinit.png'.format(title, n, testCase, a)))
+    plt.close()
 
 if __name__ == '__main__':
-    n = 256
+    n = 256*2
     tmax = 10 # number of timesteps in reinitialization
-    reinitfreq = 50
+    reinitfreq = 50 # number of iterations between reinitialization
     doreinit = True
-    dosave = False
-    it = 100001
+    dosave = True
+    it = 200001
 
     CFL = 0.25
 
-    proj = '2D'
-    testCase = 'zalesak'
-    T = 2 # used in vortex-test
-
-    dx = 1/n
-    dy = 1/n
+    proj = '2D' 
+    testCase = 'vortex'
+    T = 8 # used in vortex-test
 
     x = np.linspace(0, 1, n)
     if testCase == 'vortex':
-        y = np.linspace(0.25, 1.25, n)
+        y = np.linspace(0.5, 1.5, n)
     else:
         y = np.linspace(0, 1, n)
+
+    dx = (x[-1] - x[0])/n
+    dy = (y[-1] - y[0])/n
+
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
 
     totalTime = 0
-    dt = 0
+    # dt = 0
+    dt =5*10**-5 # From Claudio Walker article [a]
     t = 0
 
     def uVortex(i,j):
@@ -170,8 +172,8 @@ if __name__ == '__main__':
         a = 0.15
         cx = 0.5
         cy = 0.75
-        #dt = 0.0025
-        dt = 0.0005
+        # dt = 0.0025
+        # dt = 0.0005
         plotcriteria = T
 
         uvel = uVortex
@@ -183,7 +185,7 @@ if __name__ == '__main__':
         # Åsmund Ervik:
         cx = 0.5
         cy = 0.5
-        dt = 0.005
+        # dt = 0.005
         a = 1/3
         # plotcriteria = 628
         plotcriteria = 20
@@ -218,31 +220,26 @@ if __name__ == '__main__':
         initX = [a*np.cos(theta), a*np.sin(theta)]
 
     phi = init(phi, initX)
-    # con = contour(phi)
-    # initialArea = area(con)
     xval, yval = contour(phi)
     initialArea = area(xval, yval)
     print("Initial area = {0}".format(initialArea))
     for k in range(it):
 
-        if k%100 == 0:
+        if k%50 == 0:
             print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
-        if k%1000 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
-            title = 't = {0:.3f}, it = {1}'.format(t, k)
-            plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
-            # con = contour(phi)
-            # a = area(con)
-            xval, yval = contour(phi)
-            a = area(xval, yval)
-            print('Area = {0} for {1}'.format(a, title))
-            print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
-
         if k%reinitfreq == 0 and k != 0 and doreinit:
             reinitStart = time.time()
             phi = reinit(phi, sc.godunov)
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
+        if k%10000 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
+            title = 't = {0:.3f}, it = {1}'.format(t, k)
+            plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
+            xval, yval = contour(phi)
+            a = area(xval, yval)
+            print('Area = {0} for {1}'.format(a, title))
+            print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
 
         startTime = time.time()
 
@@ -255,8 +252,7 @@ if __name__ == '__main__':
         if dt > dtmax:
             print('WARNING; dt too high at it = {0}, dt = {1}, dtmax = {2}'.format(k, dt, dtmax))
             break
-        # dt =5*10**-5 # From Claudio Walker article [a]
-        # dt = 10**-3
+        
         t += dt
 
         phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
