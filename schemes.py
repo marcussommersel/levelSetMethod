@@ -95,17 +95,17 @@ def godunov(phi, ax, ay, x, y, dx, dy):
 
     phiy[1:-2,1:-2] = (ay[1:-2,1:-2] >= 0)*np.sqrt(np.maximum(np.maximum(phiy_m, 0)**2, np.minimum(phiy_p, 0)**2)) + (ay[1:-2,1:-2] < 0)*np.sqrt(np.maximum(np.minimum(phiy_m, 0)**2, np.maximum(phiy_p, 0)**2))
     
-    # phix[0, :] = 1
-    # phix[-1, :] = 1
+    phix[0, :] = 1
+    phix[-1, :] = 1
 
-    # phix[:, 0] = 1
-    # phix[:, -1] = 1
+    phix[:, 0] = 1
+    phix[:, -1] = 1
 
-    # phiy[0, :] = 1
-    # phiy[-1, :] = 1
+    phiy[0, :] = 1
+    phiy[-1, :] = 1
 
-    # phiy[:, 0] = 1
-    # phiy[:, -1] = 1
+    phiy[:, 0] = 1
+    phiy[:, -1] = 1
 
     return phix, phiy
 
