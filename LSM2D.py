@@ -52,7 +52,12 @@ def reinit(phi, scheme):
 
         # temp =  phi - dt*S0*(np.sqrt((u*phix)**2 + (v*phiy)**2) - 1)
 
-        temp = sc.wenoBC(temp)
+        temp[0, :] = temp[1, :] + (temp[2, :] - temp[1, :])
+        temp[-1, :] = temp[-2, :] + (temp[-3, :] - temp[-2, :])
+
+        temp[:, 0] = temp[:, 1] + (temp[:, 2] - temp[:, 1])
+        temp[:, -1] = temp[:, -2] + (temp[:, -3] - temp[:, -2])
+
         phi = temp
 
         # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
@@ -62,14 +67,8 @@ def reinit(phi, scheme):
     return phi
 
 def area(xval, yval):
-    a = 0
-    x1 = xval/(n-1)
-    y1 = yval/(n-1)
-    for i in range(len(x1)-1): # Check vector formulation
-        dx = x1[i+1]-x1[i]
-        dy = y1[i+1]-y1[i]
-        a += 0.5*(y1[i]*dx - x1[i]*dy)
-    return abs(a)
+    area = np.abs(0.5*np.sum(xval[:-1]*np.diff(yval) - yval[:-1]*np.diff(xval)))
+    return area
 
 def contour(fun): 
     c = measure.find_contours(fun, 0)
@@ -77,6 +76,7 @@ def contour(fun):
         c = c[0]
         print("Several contours found! dt might be too high.")
     elif len(c) > 1:
+        print("Several contours found! dt might be too high.")
         maxContours = 100
         count = 0
         while count < maxContours:
@@ -88,7 +88,7 @@ def contour(fun):
     con = np.asarray(c, dtype='float64').reshape(-1)
     xval = con[0::2]
     yval = con[1::2]
-    return xval, yval
+    return xval/(n-1)*(x[-1] - x[0]), yval/(n-1)*(y[-1] - y[0])
 
 def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1]):
     if proj == '3D': # Only for testing purposes
@@ -98,7 +98,7 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
         ax.contour3D(X, Y, phi, 50, cmap='coolwarm')
         plt.show()
         return
-    if case == 'vortex':
+    if case == 'vortex': # No need for if
         yoffset = y[0]
     else:
         yoffset = 0
@@ -108,7 +108,8 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
     plt.ylabel('y')
     plt.plot(initX[0], initX[1], 'b', label='Initial interface')
     xval, yval = contour(phi)
-    plt.plot(xval/(n-1)*(x[-1] - x[0]), yval/(n-1)*(y[-1] - y[0]) + yoffset, 'r', label='Current interface') # Add scaling to contour()?
+    # plt.plot(xval/(n-1)*(x[-1] - x[0]), yval/(n-1)*(y[-1] - y[0]) + yoffset, 'r', label='Current interface') # Add scaling to contour()?
+    plt.plot(xval, yval + yoffset, 'r', label='Current interface') # Add scaling to contour()?
     plt.legend()
     plt.title(title)
 
@@ -121,14 +122,14 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
     plt.close()
 
 if __name__ == '__main__':
-    n = 256*2
+    n = 256
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 50 # number of iterations between reinitialization
     doreinit = True
     dosave = True
     it = 200001
 
-    CFL = 0.25
+    CFL = 0.9
 
     proj = '2D' 
     testCase = 'vortex'
@@ -140,8 +141,11 @@ if __name__ == '__main__':
     else:
         y = np.linspace(0, 1, n)
 
-    dx = (x[-1] - x[0])/n
-    dy = (y[-1] - y[0])/n
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
+
+
+    # print(dx, " ", dy, " ", dx1, " ", dy1)
 
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
@@ -149,7 +153,10 @@ if __name__ == '__main__':
 
     totalTime = 0
     # dt = 0
-    dt =5*10**-5 # From Claudio Walker article [a]
+    # dt =5*10**-5 # From Claudio Walker article [a]
+    dt = 0.001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
+    # dt = 0.0001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
+    # dt = 0.0005 # Slightly below dtmax for vortex with n = 1024, CFL = 0.9
     t = 0
 
     def uVortex(i,j):
@@ -190,8 +197,8 @@ if __name__ == '__main__':
         # plotcriteria = 628
         plotcriteria = 20
 
-        uvel = uZalesak
-        vvel = vZalesak
+        u = np.pi/10*(0.5 - y)
+        v = np.pi/10*(x - 0.5)
 
         width = a/3 # 0.05
         length = width*5 # 0.25 # values from Claudio Walker
@@ -233,7 +240,7 @@ if __name__ == '__main__':
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
-        if k%10000 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
+        if k%500 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
             title = 't = {0:.3f}, it = {1}'.format(t, k)
             plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
             xval, yval = contour(phi)
@@ -243,12 +250,13 @@ if __name__ == '__main__':
 
         startTime = time.time()
 
-        if not testCase == 'pospos':
+        if testCase == 'vortex':
             u = np.fromfunction(uvel, (len(x), len(y)), dtype=int)
             v = np.fromfunction(vvel, (len(x), len(y)), dtype=int)
 
         # CFL condition
-        dtmax = CFL*(dx + dy)/(abs(u + v)).max()
+        # dtmax = CFL*(dx + dy)/(abs(u + v)).max() # From wikipedia?
+        dtmax = CFL/((abs(u)/dx + abs(v)/dy).max()) # From level set book
         if dt > dtmax:
             print('WARNING; dt too high at it = {0}, dt = {1}, dtmax = {2}'.format(k, dt, dtmax))
             break

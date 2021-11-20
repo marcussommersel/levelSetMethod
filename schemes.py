@@ -85,31 +85,27 @@ def godunov(phi, ax, ay, x, y, dx, dy):
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
 
-    phix_m = (phi[2:-2,2:-2] - phi[1:-3,2:-2])/dx
-    phix_p = (phi[3:-1,2:-2] - phi[2:-2,2:-2])/dx
+    phix_m = (phi[1:-2,1:-2] - phi[0:-3,1:-2])/dx
+    phix_p = (phi[2:-1,1:-2] - phi[1:-2,1:-2])/dx
     
-    phiy_m = (phi[2:-2,2:-2] - phi[2:-2,1:-3])/dy
-    phiy_p = (phi[2:-2,3:-1] - phi[2:-2,2:-2])/dy
+    phiy_m = (phi[1:-2,1:-2] - phi[1:-2,0:-3])/dy
+    phiy_p = (phi[1:-2,2:-1] - phi[1:-2,1:-2])/dy
 
-    phix[2:-2,2:-2] = (ax[2:-2,2:-2] >= 0)*np.sqrt(np.maximum(np.maximum(phix_m, 0)**2, np.minimum(phix_p, 0)**2)) + (ax[2:-2,2:-2] < 0)*np.sqrt(np.maximum(np.minimum(phix_m, 0)**2, np.maximum(phix_p, 0)**2))
+    phix[1:-2,1:-2] = (ax[1:-2,1:-2] >= 0)*np.sqrt(np.maximum(np.maximum(phix_m, 0)**2, np.minimum(phix_p, 0)**2)) + (ax[1:-2,1:-2] < 0)*np.sqrt(np.maximum(np.minimum(phix_m, 0)**2, np.maximum(phix_p, 0)**2))
 
-    phiy[2:-2,2:-2] = (ay[2:-2,2:-2] >= 0)*np.sqrt(np.maximum(np.maximum(phiy_m, 0)**2, np.minimum(phiy_p, 0)**2)) + (ay[2:-2,2:-2] < 0)*np.sqrt(np.maximum(np.minimum(phiy_m, 0)**2, np.maximum(phiy_p, 0)**2))
+    phiy[1:-2,1:-2] = (ay[1:-2,1:-2] >= 0)*np.sqrt(np.maximum(np.maximum(phiy_m, 0)**2, np.minimum(phiy_p, 0)**2)) + (ay[1:-2,1:-2] < 0)*np.sqrt(np.maximum(np.minimum(phiy_m, 0)**2, np.maximum(phiy_p, 0)**2))
     
-    phix[1, :] = 1
-    phix[0, :] = 1
-    phix[-1, :] = 1
+    # phix[0, :] = 1
+    # phix[-1, :] = 1
 
-    phix[:, 1] = 1
-    phix[:, 0] = 1
-    phix[:, -1] = 1
+    # phix[:, 0] = 1
+    # phix[:, -1] = 1
 
-    phiy[1, :] = 1
-    phiy[0, :] = 1
-    phiy[-1, :] = 1
+    # phiy[0, :] = 1
+    # phiy[-1, :] = 1
 
-    phiy[:, 1] = 1
-    phiy[:, 0] = 1
-    phiy[:, -1] = 1
+    # phiy[:, 0] = 1
+    # phiy[:, -1] = 1
 
     return phix, phiy
 
@@ -178,18 +174,17 @@ def weno(phi, ax, ay, x, y, dx, dy):
 
 def wenoBC(fun):
 
-    fun[2, :] = fun[3, :] - (fun[4, :]- fun[3, :])
-    fun[1, :] = fun[2, :] - (fun[3, :]- fun[2, :])
-    fun[0, :] = fun[1, :] - (fun[2, :]- fun[1, :])
-    fun[-3, :] = fun[-4, :] - (fun[-5, :]- fun[-4, :])
-    fun[-2, :] = fun[-3, :] - (fun[-4, :]- fun[-3, :])
-    fun[-1, :] = fun[-2, :] - (fun[-3, :]- fun[-2, :])
+    fun[2, :] = fun[3, :] + (fun[4, :] - fun[3, :])
+    fun[1, :] = fun[2, :] + (fun[3, :] - fun[2, :])
+    fun[0, :] = fun[1, :] + (fun[2, :] - fun[1, :])
+    fun[-3, :] = fun[-4, :] + (fun[-5, :] - fun[-4, :])
+    fun[-2, :] = fun[-3, :] + (fun[-4, :] - fun[-3, :])
+    fun[-1, :] = fun[-2, :] + (fun[-3, :] - fun[-2, :])
 
-    fun[:, 2] = fun[:, 3] - (fun[:, 4]- fun[:, 3])
-    fun[:, 1] = fun[:, 2] - (fun[:, 3]- fun[:, 2])
-    fun[:, 0] = fun[:, 1] - (fun[:, 2]- fun[:, 1])
-    fun[:, -3] = fun[:, -4] - (fun[:, -5]- fun[:, -4])
-    fun[:, -2] = fun[:, -3] - (fun[:, -4]- fun[:, -3])
-    fun[:, -1] = fun[:, -2] - (fun[:, -3]- fun[:, -2])
-
+    fun[:, 2] = fun[:, 3] + (fun[:, 4] - fun[:, 3])
+    fun[:, 1] = fun[:, 2] + (fun[:, 3] - fun[:, 2])
+    fun[:, 0] = fun[:, 1] + (fun[:, 2] - fun[:, 1])
+    fun[:, -3] = fun[:, -4] + (fun[:, -5] - fun[:, -4])
+    fun[:, -2] = fun[:, -3] + (fun[:, -4] - fun[:, -3])
+    fun[:, -1] = fun[:, -2] + (fun[:, -3] - fun[:, -2])
     return fun
