@@ -63,27 +63,22 @@ def reinit(phi, scheme):
     return phi
 
 def area(xval, yval):
-    area = np.abs(0.5*np.sum(xval[:-1]*np.diff(yval) - yval[:-1]*np.diff(xval)))
+    area = 0
+    for i in range(len(xval)):
+        area += np.abs(0.5*np.sum(xval[i][:-1]*np.diff(yval[i]) - yval[i][:-1]*np.diff(xval[i])))
     return area
 
 def contour(fun):
     c = measure.find_contours(fun, 0)
-    if len(c) > 1 and testCase == 'zalesak': # Fix for cases where function finds several contours, test if happens for rounded corners.
-        c = c[0]
-        print("Several contours found! dt might be too high.")
-    elif len(c) > 1:
-        print("Several contours found! dt might be too high.")
-        maxContours = 100
-        count = 0
-        while count < maxContours:
-            c = np.append(c[0], c[1])
-            if c.dtype == 'float64':
-                break
-            count += 1
-
-    con = np.asarray(c, dtype='float64').reshape(-1)
-    xval = con[0::2]
-    yval = con[1::2]
+    con = []
+    xval = []
+    yval = []
+    for i in range(len(c)):
+        con.append(np.asarray(c[i], dtype='float64').reshape(-1))
+        xval.append(con[i][0::2])
+        yval.append(con[i][1::2])
+    xval = np.asarray(xval, dtype='object')
+    yval = np.asarray(yval, dtype='object')
     return xval/(n-1)*(x[-1] - x[0]), yval/(n-1)*(y[-1] - y[0])
 
 def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1]):
@@ -104,8 +99,8 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
     plt.ylabel('y')
     plt.plot(initX[0], initX[1], 'b', label='Initial interface')
     xval, yval = contour(phi)
-    # plt.plot(xval/(n-1)*(x[-1] - x[0]), yval/(n-1)*(y[-1] - y[0]) + yoffset, 'r', label='Current interface') # Add scaling to contour()?
-    plt.plot(xval, yval + yoffset, 'r', label='Current interface') # Add scaling to contour()?
+    for i in range(len(xval)):
+        plt.plot(xval[i], yval[i] + yoffset, 'r', label='Current interface'*(i==0)) # Add scaling to contour()?
     plt.legend()
     plt.title(title)
 
@@ -140,17 +135,14 @@ if __name__ == '__main__':
     dx = x[1] - x[0]
     dy = y[1] - y[0]
 
-
-    # print(dx, " ", dy, " ", dx1, " ", dy1)
-
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
 
     totalTime = 0
-    # dt = 0
+    dt = 0.001
     # dt =5*10**-5 # From Claudio Walker article [a]
-    dt = 0.001 # Slightly below dtmax for vortex with n = 256, CFL = 0.5
+    # dt = 0.001 # Slightly below dtmax for vortex with n = 256, CFL = 0.5
     # dt = 0.0025 # Slightly below dtmax for vortex with n = 256, CFL = 0.9
     # dt = 0.0001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
     # dt = 0.0005 # Slightly below dtmax for vortex with n = 1024, CFL = 0.9
@@ -232,13 +224,15 @@ if __name__ == '__main__':
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
-        if k%200 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
+        if k%1800 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
             title = 't = {0:.3f}, it = {1}'.format(t, k)
             plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
             xval, yval = contour(phi)
             a = area(xval, yval)
             print('Area = {0} for {1}'.format(a, title))
             print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
+            if k != 0:
+                break
 
         startTime = time.time()
 
