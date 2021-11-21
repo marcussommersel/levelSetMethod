@@ -147,7 +147,6 @@ if __name__ == '__main__':
     phi = np.zeros([len(x), len(y)])
     theta = np.linspace(0, 2*np.pi, n)
     t = 0
-    # totalTime = 0
 
     def uVortex(i,j):
         return -2*((np.sin(np.pi*x[i]))**2)*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T) # Claudio Walker
