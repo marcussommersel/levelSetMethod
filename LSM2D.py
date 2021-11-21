@@ -79,7 +79,7 @@ def contour(fun):
         yval.append(con[i][1::2])
     xval = np.asarray(xval, dtype='object')
     yval = np.asarray(yval, dtype='object')
-    return xval/(n-1)*(x[-1] - x[0]), yval/(n-1)*(y[-1] - y[0])
+    return xval/(n-1)*(x[-1] - x[0]) + x[0], yval/(n-1)*(y[-1] - y[0]) +  y[0]
 
 def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1]):
     if proj == '3D': # Only for testing purposes
@@ -89,10 +89,6 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
         ax.contour3D(X, Y, phi, 50, cmap='coolwarm')
         plt.show()
         return
-    if case == 'vortex': # No need for if
-        yoffset = y[0]
-    else:
-        yoffset = 0
     plt.axis([limitx[0], limitx[1], limity[0], limity[1]])
     plt.gca().set_aspect('equal', adjustable='box')
     plt.xlabel('x')
@@ -100,22 +96,25 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
     plt.plot(initX[0], initX[1], 'b', label='Initial interface')
     xval, yval = contour(phi)
     for i in range(len(xval)):
-        plt.plot(xval[i], yval[i] + yoffset, 'r', label='Current interface'*(i==0)) # Add scaling to contour()?
+        plt.plot(xval[i], yval[i], 'r', label='Current interface'*(i==0)) # Add scaling to contour()?
     plt.legend()
     plt.title(title)
 
     if save:
         a = area(xval, yval)
         if doreinit:
-            plt.savefig(('figures/{0}, n = {1}, {2}, A = {3} Reinit iter = {4} at freq = {5}.png'.format(title, n, testCase, a, tmax, reinitfreq)))
+            plt.savefig(('figures/{0}, {1}, n = {2}, A = {3} Reinit iter = {4} at freq = {5}.png'.format(testCase, title, n, a, tmax, reinitfreq)))
         else:
-            plt.savefig(('figures/{0}, n = {1}, {2}, A = {3}, no Reinit.png'.format(title, n, testCase, a)))
+            plt.savefig(('figures/{0}, {1}, n = {2}, A = {3}, no Reinit.png'.format(testCase, title, n, a)))
     plt.close()
 
 if __name__ == '__main__':
+
+#######################################################################################
     n = 256
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 50 # number of iterations between reinitialization
+    plotfreq = 500
     doreinit = True
     dosave = True
     it = 200001
@@ -125,6 +124,13 @@ if __name__ == '__main__':
     proj = '2D'
     testCase = 'vortex'
     T = 8 # used in vortex-test
+    dt = 0.001
+    # dt =5*10**-5 # From Claudio Walker article [a]
+    # dt = 0.001 # Slightly below dtmax for vortex with n = 256, CFL = 0.5
+    # dt = 0.0025 # Slightly below dtmax for vortex with n = 256, CFL = 0.9
+    # dt = 0.0001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
+    # dt = 0.0005 # Slightly below dtmax for vortex with n = 1024, CFL = 0.9
+#######################################################################################
 
     x = np.linspace(0, 1, n)
     if testCase == 'vortex':
@@ -138,15 +144,9 @@ if __name__ == '__main__':
     u = np.zeros([len(x), len(y)])
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
-
-    totalTime = 0
-    dt = 0.001
-    # dt =5*10**-5 # From Claudio Walker article [a]
-    # dt = 0.001 # Slightly below dtmax for vortex with n = 256, CFL = 0.5
-    # dt = 0.0025 # Slightly below dtmax for vortex with n = 256, CFL = 0.9
-    # dt = 0.0001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
-    # dt = 0.0005 # Slightly below dtmax for vortex with n = 1024, CFL = 0.9
+    theta = np.linspace(0, 2*np.pi, n)
     t = 0
+    totalTime = 0
 
     def uVortex(i,j):
         return -2*((np.sin(np.pi*x[i]))**2)*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T) # Claudio Walker
@@ -159,7 +159,6 @@ if __name__ == '__main__':
         # return np.pi/628*(2*x[i] + y[j]**2 - 1 - y[j]) # Claudio Walker
         return np.pi/10*(x[i] - 0.5)
 
-    theta = np.linspace(0, 2*np.pi, n)
     if testCase == 'vortex':
 
         # Claudio Walker:
@@ -224,15 +223,13 @@ if __name__ == '__main__':
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
-        if k%1800 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
+        if k%plotfreq == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
             title = 't = {0:.3f}, it = {1}'.format(t, k)
             plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
             xval, yval = contour(phi)
             a = area(xval, yval)
             print('Area = {0} for {1}'.format(a, title))
             print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
-            if k != 0:
-                break
 
         startTime = time.time()
 
