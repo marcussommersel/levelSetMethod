@@ -60,17 +60,13 @@ def reinit(phi, scheme):
 
         phi = temp
 
-        # S = phi/np.sqrt(phi**2 + abs(phix + phiy)**2*max(dx, dy)**2)
-        # phix, phiy = scheme(phi, S, S, x, y, dx, dy)
-        # phiGradAbs = abs(phix + phiy)
-
     return phi
 
 def area(xval, yval):
     area = np.abs(0.5*np.sum(xval[:-1]*np.diff(yval) - yval[:-1]*np.diff(xval)))
     return area
 
-def contour(fun): 
+def contour(fun):
     c = measure.find_contours(fun, 0)
     if len(c) > 1 and testCase == 'zalesak': # Fix for cases where function finds several contours, test if happens for rounded corners.
         c = c[0]
@@ -131,7 +127,7 @@ if __name__ == '__main__':
 
     CFL = 0.9
 
-    proj = '2D' 
+    proj = '2D'
     testCase = 'vortex'
     T = 8 # used in vortex-test
 
@@ -154,17 +150,16 @@ if __name__ == '__main__':
     totalTime = 0
     # dt = 0
     # dt =5*10**-5 # From Claudio Walker article [a]
-    dt = 0.001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
+    dt = 0.001 # Slightly below dtmax for vortex with n = 256, CFL = 0.5
+    # dt = 0.0025 # Slightly below dtmax for vortex with n = 256, CFL = 0.9
     # dt = 0.0001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
     # dt = 0.0005 # Slightly below dtmax for vortex with n = 1024, CFL = 0.9
     t = 0
 
     def uVortex(i,j):
         return -2*((np.sin(np.pi*x[i]))**2)*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T) # Claudio Walker
-        # return -2*(np.sin(np.pi*x[i] - 0.5*np.pi))**2*np.cos(np.pi*y[j] - 0.5*np.pi)*np.sin(np.pi*y[j] - 0.5*np.pi)
     def vVortex(i,j):
         return -2*np.sin(np.pi*x[i])*np.cos(np.pi*x[i])*((np.cos(np.pi*y[j]))**2)*np.cos(np.pi*t/T) # Claudio Walker
-        # return -2*(np.cos(np.pi*y[j] - 0.5*np.pi))**2*np.sin(np.pi*x[i] - 0.5*np.pi)*np.cos(np.pi*x[i] - 0.5*np.pi)
     def uZalesak(i,j):
         # return -np.pi/628*(x[i]**2 + 2*y[j] - x[i] - 1) # Claudio Walker
         return np.pi/10*(0.5 - y[j])
@@ -183,9 +178,6 @@ if __name__ == '__main__':
         # dt = 0.0005
         plotcriteria = T
 
-        uvel = uVortex
-        vvel = vVortex
-        
         initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
     elif testCase == 'zalesak':
 
@@ -197,8 +189,8 @@ if __name__ == '__main__':
         # plotcriteria = 628
         plotcriteria = 20
 
-        u = np.pi/10*(0.5 - y)
-        v = np.pi/10*(x - 0.5)
+        u = np.fromfunction(uZalesak, (len(x), len(y)), dtype=int)
+        v = np.fromfunction(vZalesak, (len(x), len(y)), dtype=int)
 
         width = a/3 # 0.05
         length = width*5 # 0.25 # values from Claudio Walker
@@ -206,7 +198,7 @@ if __name__ == '__main__':
         thetaZ2 = np.linspace(3/2*np.pi + np.arcsin(0.5*width/a), 2*np.pi, n)
         x1 = -width/2 + cx
         x2 = width/2 + cx
-        y1 = -np.sqrt(a**2 - width**2) + cy 
+        y1 = -np.sqrt(a**2 - width**2) + cy
         y2 = y1 + length
         xinit = a*np.cos(thetaZ1) + cx
         xinit = np.append(xinit, [x1, x2])
@@ -216,7 +208,7 @@ if __name__ == '__main__':
         yinit = np.append(yinit, [y2, y2])
         yinit = np.append(yinit, [a*np.sin(thetaZ2) + cy])
         initX = [xinit, yinit]
-    elif testCase == 'pospos':
+    elif testCase == 'pospos': # Only used for testing
 
         dt = 0.25
         plotcriteria = 1
@@ -240,7 +232,7 @@ if __name__ == '__main__':
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
             totalTime += reinitTime
-        if k%500 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
+        if k%200 == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
             title = 't = {0:.3f}, it = {1}'.format(t, k)
             plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
             xval, yval = contour(phi)
@@ -251,16 +243,15 @@ if __name__ == '__main__':
         startTime = time.time()
 
         if testCase == 'vortex':
-            u = np.fromfunction(uvel, (len(x), len(y)), dtype=int)
-            v = np.fromfunction(vvel, (len(x), len(y)), dtype=int)
+            u = np.fromfunction(uVortex, (len(x), len(y)), dtype=int)
+            v = np.fromfunction(vVortex, (len(x), len(y)), dtype=int)
 
         # CFL condition
-        # dtmax = CFL*(dx + dy)/(abs(u + v)).max() # From wikipedia?
         dtmax = CFL/((abs(u)/dx + abs(v)/dy).max()) # From level set book
         if dt > dtmax:
             print('WARNING; dt too high at it = {0}, dt = {1}, dtmax = {2}'.format(k, dt, dtmax))
             break
-        
+
         t += dt
 
         phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
