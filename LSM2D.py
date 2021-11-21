@@ -96,33 +96,34 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
     plt.plot(initX[0], initX[1], 'b', label='Initial interface')
     xval, yval = contour(phi)
     for i in range(len(xval)):
-        plt.plot(xval[i], yval[i], 'r', label='Current interface'*(i==0)) # Add scaling to contour()?
+        plt.plot(xval[i], yval[i], 'r', label='Current interface'*(i==0))
     plt.legend()
     plt.title(title)
 
     if save:
         a = area(xval, yval)
         if doreinit:
-            plt.savefig(('figures/{0}, {1}, n = {2}, A = {3} Reinit iter = {4} at freq = {5}.png'.format(testCase, title, n, a, tmax, reinitfreq)))
+            plt.savefig(('figures/{0}, {1}, n = {2}, Reinit iter = {3} at freq = {4}, A = {5}.png'.format(testCase, title, n, tmax, reinitfreq, a)))
         else:
-            plt.savefig(('figures/{0}, {1}, n = {2}, A = {3}, no Reinit.png'.format(testCase, title, n, a)))
+            plt.savefig(('figures/{0}, {1}, n = {2}, no Reinit, A = {3}.png'.format(testCase, title, n, a)))
     plt.close()
 
 if __name__ == '__main__':
 
+    startTime = time.time()
 #######################################################################################
     n = 256
     tmax = 10 # number of timesteps in reinitialization
     reinitfreq = 50 # number of iterations between reinitialization
+    printfreq = reinitfreq
     plotfreq = 500
     doreinit = True
     dosave = True
-    it = 200001
 
     CFL = 0.9
 
     proj = '2D'
-    testCase = 'vortex'
+    testCase = 'zalesak'
     T = 8 # used in vortex-test
     dt = 0.001
     # dt =5*10**-5 # From Claudio Walker article [a]
@@ -146,7 +147,7 @@ if __name__ == '__main__':
     phi = np.zeros([len(x), len(y)])
     theta = np.linspace(0, 2*np.pi, n)
     t = 0
-    totalTime = 0
+    # totalTime = 0
 
     def uVortex(i,j):
         return -2*((np.sin(np.pi*x[i]))**2)*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T) # Claudio Walker
@@ -168,6 +169,7 @@ if __name__ == '__main__':
         # dt = 0.0025
         # dt = 0.0005
         plotcriteria = T
+        it = int(T/dt + 1)
 
         initX = [a*np.cos(theta) + 0.5, a*np.sin(theta) + 0.75]
     elif testCase == 'zalesak':
@@ -177,8 +179,8 @@ if __name__ == '__main__':
         cy = 0.5
         # dt = 0.005
         a = 1/3
-        # plotcriteria = 628
         plotcriteria = 20
+        it = int(20/dt + 1)
 
         u = np.fromfunction(uZalesak, (len(x), len(y)), dtype=int)
         v = np.fromfunction(vZalesak, (len(x), len(y)), dtype=int)
@@ -212,30 +214,11 @@ if __name__ == '__main__':
     phi = init(phi, initX)
     xval, yval = contour(phi)
     initialArea = area(xval, yval)
-    print("Initial area = {0}".format(initialArea))
-    for k in range(it):
-
-        if k%50 == 0:
-            print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}, t/T = {3:.5f}'.format(k, t, totalTime, t/T))
-        if k%reinitfreq == 0 and k != 0 and doreinit:
-            reinitStart = time.time()
-            phi = reinit(phi, sc.godunov)
-            reinitTime = time.time() - reinitStart
-            print('Reinitialization time = {0}'.format(reinitTime))
-            totalTime += reinitTime
-        if k%plotfreq == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
-            title = 't = {0:.3f}, it = {1}'.format(t, k)
-            plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
-            xval, yval = contour(phi)
-            a = area(xval, yval)
-            print('Area = {0} for {1}'.format(a, title))
-            print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
-
-        startTime = time.time()
-
-        if testCase == 'vortex':
-            u = np.fromfunction(uVortex, (len(x), len(y)), dtype=int)
-            v = np.fromfunction(vVortex, (len(x), len(y)), dtype=int)
+    print('Initial area = {0}'.format(initialArea))
+    title = 't = {0:.3f}, it = 0'.format(t)
+    plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
+    xval, yval = contour(phi)
+    for k in range(1, it+1):
 
         # CFL condition
         dtmax = CFL/((abs(u)/dx + abs(v)/dy).max()) # From level set book
@@ -244,8 +227,25 @@ if __name__ == '__main__':
             break
 
         t += dt
+        if testCase == 'vortex':
+            u = np.fromfunction(uVortex, (len(x), len(y)), dtype=int)
+            v = np.fromfunction(vVortex, (len(x), len(y)), dtype=int)
 
         phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
 
-        currentTime = time.time() - startTime
-        totalTime += currentTime # plotting not included
+        if k%reinitfreq == 0 and k != 0 and doreinit:
+            reinitStart = time.time()
+            phi = reinit(phi, sc.godunov)
+            reinitTime = time.time() - reinitStart
+            print('Reinitialization time = {0}'.format(reinitTime))
+        if k%plotfreq == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
+            title = 't = {0:.3f}, it = {1}'.format(t, k)
+            plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
+            xval, yval = contour(phi)
+            a = area(xval, yval)
+            print('Area = {0} for {1}'.format(a, title))
+            print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
+        if k%printfreq == 0:
+            print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}'.format(k, t, time.time() - startTime) + (testCase=='vortex')*', t/T = {0:.5f}'.format(t/T))
+
+    print('Total time = {0:.4f}'.format(time.time() - startTime))
