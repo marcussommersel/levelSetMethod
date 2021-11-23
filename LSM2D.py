@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import path
 import time
 from skimage import measure
+import tikzplotlib
 
 def init(phi, init):
     p = path.Path(np.transpose(init))
@@ -91,48 +92,55 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
         return
     plt.axis([limitx[0], limitx[1], limity[0], limity[1]])
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.xlabel('x')
-    plt.ylabel('y')
+    plt.xlabel('x', fontsize=12, style='italic')
+    plt.ylabel('y', fontsize=12, style='italic')
     plt.plot(initX[0], initX[1], 'b', label='Initial interface')
     xval, yval = contour(phi)
     for i in range(len(xval)):
         plt.plot(xval[i], yval[i], 'r', label='Current interface'*(i==0))
-    plt.legend()
-    plt.title(title)
+    plt.legend(loc='upper right', fontsize=11)
+    # plt.title(title)
 
     if save:
         a = area(xval, yval)
         if doreinit:
-            plt.savefig(('figures/{0}, {1}, n = {2}, Reinit iter = {3} at freq = {4}, A = {5}.png'.format(testCase, title, n, tmax, reinitfreq, a)))
+            plt.savefig('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.png'.format(testCase, title, n, dt, tmax, reinitfreq, a))
+            tikzplotlib.save('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.tex'.format(testCase, title, n, dt, tmax, reinitfreq, a),  extra_axis_parameters=['axis equal'])
+            np.savetxt('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.csv'.format(testCase, title, n, dt, tmax, reinitfreq, a), phi, delimiter=',')
         else:
-            plt.savefig(('figures/{0}, {1}, n = {2}, no Reinit, A = {3}.png'.format(testCase, title, n, a)))
+            plt.savefig('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.png'.format(testCase, title, n, dt, a))
+            tikzplotlib.save('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.tex'.format(testCase, title, n, dt, a),  extra_axis_parameters=['axis equal'])
+            np.savetxt('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.csv'.format(testCase, title, n, dt, a), phi, delimiter=',')
     plt.close()
 
 if __name__ == '__main__':
 
     startTime = time.time()
 #######################################################################################
-    n = 256
-    tmax = 10 # number of timesteps in reinitialization
-    reinitfreq = 50 # number of iterations between reinitialization
-    printfreq = reinitfreq
-    plotfreq = 500
+    n = 512
+    tmax = 10 # number of timesteps in reinitialization, 10 best for zalesak
+    reinitfreq = 500 # number of iterations between reinitialization, 500 best for zalesak, 250 for vortex at T=2, 500 at T = 8
+    printfreq = 500
+    plotfreq = 2000 # 4000 = end for vortex, T = 2, 8000 = end for zalesak,
     doreinit = True
     dosave = True
 
     CFL = 0.9
 
     proj = '2D'
-    testCase = 'zalesak'
+    testCase = 'vortex'
     T = 8 # used in vortex-test
-    dt = 0.001
+    dt = 0.0005
     # dt =5*10**-5 # From Claudio Walker article [a]
     # dt = 0.001 # Slightly below dtmax for vortex with n = 256, CFL = 0.5
     # dt = 0.0025 # Slightly below dtmax for vortex with n = 256, CFL = 0.9
     # dt = 0.0001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
     # dt = 0.0005 # Slightly below dtmax for vortex with n = 1024, CFL = 0.9
+
+    # dt = 0.0025 # Slightly below dtmax for zalesak with n = 1024, CFL = 0.9
 #######################################################################################
 
+    plt.rc('font',family='Times New Roman')
     x = np.linspace(0, 1, n)
     if testCase == 'vortex':
         y = np.linspace(0.5, 1.5, n)
@@ -219,16 +227,16 @@ if __name__ == '__main__':
     xval, yval = contour(phi)
     for k in range(1, it+1):
 
+        t += dt
+        if testCase == 'vortex':
+            u = np.fromfunction(uVortex, (len(x), len(y)), dtype=int)
+            v = np.fromfunction(vVortex, (len(x), len(y)), dtype=int)
+
         # CFL condition
         dtmax = CFL/((abs(u)/dx + abs(v)/dy).max()) # From level set book
         if dt > dtmax:
             print('WARNING; dt too high at it = {0}, dt = {1}, dtmax = {2}'.format(k, dt, dtmax))
             break
-
-        t += dt
-        if testCase == 'vortex':
-            u = np.fromfunction(uVortex, (len(x), len(y)), dtype=int)
-            v = np.fromfunction(vVortex, (len(x), len(y)), dtype=int)
 
         phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
 
@@ -237,7 +245,7 @@ if __name__ == '__main__':
             phi = reinit(phi, sc.godunov)
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
-        if k%plotfreq == 0 or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
+        if k%plotfreq == 0: # or round(t/plotcriteria, 4) == 1.00 or round(t/plotcriteria, 4) == 0.25:
             title = 't = {0:.3f}, it = {1}'.format(t, k)
             plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
             xval, yval = contour(phi)
