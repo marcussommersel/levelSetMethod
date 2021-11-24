@@ -63,6 +63,28 @@ def reinit(phi, scheme):
 
     return phi
 
+def interfaceError(computed, expected):
+    error  = 0
+    L = 0
+    xval, yval = contour(expected)
+    for k in range(len(xval[0])-1):
+        L += np.sqrt((xval[0][k+1] - xval[0][k])**2 + (yval[0][k+1] - yval[0][k])**2)
+    for i in range(len(computed[:,0])):
+        for j in range(len(computed[0,:])):
+            error += abs((expected[i,j]<0)*1 - (computed[i,j]<0)*1)*dx*dy
+    return error/L
+
+def mt(vec):
+    vec[vec >= 0] = 0
+    vec[vec < 0] = 1
+    M_t = np.sum(np.abs(vec)*dx*dy)
+    return M_t
+
+def massError(vec):
+    M_t0 = vec[0]
+    M_error = np.sum(np.abs(vec - M_t0)*dt)/t
+    return M_error
+
 def area(xval, yval):
     area = 0
     for i in range(len(xval)):
@@ -104,33 +126,33 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
     if save:
         a = area(xval, yval)
         if doreinit:
-            plt.savefig('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.png'.format(testCase, title, n, dt, tmax, reinitfreq, a))
-            tikzplotlib.save('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.tex'.format(testCase, title, n, dt, tmax, reinitfreq, a),  extra_axis_parameters=['axis equal'])
-            np.savetxt('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.csv'.format(testCase, title, n, dt, tmax, reinitfreq, a), phi, delimiter=',')
+            plt.savefig(savePath + '{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.png'.format(testCase, title, n, dt, tmax, reinitfreq, a))
+            tikzplotlib.save(savePath + '{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.tex'.format(testCase, title, n, dt, tmax, reinitfreq, a),  extra_axis_parameters=['axis equal'])
+            np.savetxt(savePath + '{0}, {1}, n = {2}, dt = {3}, Reinit iter = {4} at freq = {5}, A = {6}.csv'.format(testCase, title, n, dt, tmax, reinitfreq, a), phi, delimiter=',')
         else:
-            plt.savefig('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.png'.format(testCase, title, n, dt, a))
-            tikzplotlib.save('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.tex'.format(testCase, title, n, dt, a),  extra_axis_parameters=['axis equal'])
-            np.savetxt('figures/Error_analysis/{0}/n = {2}/{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.csv'.format(testCase, title, n, dt, a), phi, delimiter=',')
-    plt.close()
+            plt.savefig(savePath + '{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.png'.format(testCase, title, n, dt, a))
+            tikzplotlib.save(savePath + '{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.tex'.format(testCase, title, n, dt, a),  extra_axis_parameters=['axis equal'])
+            np.savetxt(savePath + '{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.csv'.format(testCase, title, n, dt, a), phi, delimiter=',')
+    plt.show()
 
 if __name__ == '__main__':
 
     startTime = time.time()
 #######################################################################################
-    n = 512
+    n = 128
     tmax = 10 # number of timesteps in reinitialization, 10 best for zalesak
-    reinitfreq = 500 # number of iterations between reinitialization, 500 best for zalesak, 250 for vortex at T=2, 500 at T = 8
+    reinitfreq = 50 # number of iterations between reinitialization, 500 best for zalesak, 250 for vortex at T=2, 500 at T = 8
     printfreq = 500
     plotfreq = 2000 # 4000 = end for vortex, T = 2, 8000 = end for zalesak,
     doreinit = True
-    dosave = True
+    dosave = False
 
     CFL = 0.9
 
     proj = '2D'
-    testCase = 'vortex'
+    testCase = 'zalesak'
     T = 8 # used in vortex-test
-    dt = 0.0005
+    dt = 0.01
     # dt =5*10**-5 # From Claudio Walker article [a]
     # dt = 0.001 # Slightly below dtmax for vortex with n = 256, CFL = 0.5
     # dt = 0.0025 # Slightly below dtmax for vortex with n = 256, CFL = 0.9
@@ -212,20 +234,32 @@ if __name__ == '__main__':
 
         dt = 0.25
         plotcriteria = 1
+        cx = 0.5
+        cy = 0.5
+
+        it = 0
 
         u[:,:] = -1
         v[:,:] = -1
         a = 0.5
-        initX = [a*np.cos(theta), a*np.sin(theta)]
+        initX = [a*np.cos(theta) + cx, a*np.sin(theta) + cy]
 
+    if dosave:
+        savePath = 'figures/Error_analysis/{0}/n = {1}/'.format(testCase, n)
+    else:
+        savePath = 'figures/'
     phi = init(phi, initX)
+    mtVec = []
+    phiInit = np.copy(phi)
+    mtVec = np.append(mtVec, mt(np.copy(phi)))
+    
     xval, yval = contour(phi)
     initialArea = area(xval, yval)
     print('Initial area = {0}'.format(initialArea))
     title = 't = {0:.3f}, it = 0'.format(t)
     plottingContour(title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
     xval, yval = contour(phi)
-    for k in range(1, it+1):
+    for k in range(1, it):
 
         t += dt
         if testCase == 'vortex':
@@ -239,6 +273,7 @@ if __name__ == '__main__':
             break
 
         phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
+        mtVec = np.append(mtVec, mt(np.copy(phi)))
 
         if k%reinitfreq == 0 and k != 0 and doreinit:
             reinitStart = time.time()
@@ -255,4 +290,10 @@ if __name__ == '__main__':
         if k%printfreq == 0:
             print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}'.format(k, t, time.time() - startTime) + (testCase=='vortex')*', t/T = {0:.5f}'.format(t/T))
 
-    print('Total time = {0:.4f}'.format(time.time() - startTime))
+    f = open(savePath + 'log.txt', 'w')
+    f.write('Total time = {0:.4f}\n'.format(time.time() - startTime))
+    f.write('Interface error = {0}\n'.format(interfaceError(phi, phiInit)))
+    f.write('Mass error = {0}\n'.format(massError(mtVec)))
+    f.write('Area = {0} for {1}\n'.format(a, title))
+    f.write('Area change = {0} %\n'.format(100*(initialArea-a)/initialArea))
+    f.close()
