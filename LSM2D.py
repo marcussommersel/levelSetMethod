@@ -133,27 +133,27 @@ def plottingContour(title='', case='', save=False, limitx=[-1,1], limity=[-1,1])
             plt.savefig(savePath + '{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.png'.format(testCase, title, n, dt, a))
             tikzplotlib.save(savePath + '{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.tex'.format(testCase, title, n, dt, a),  extra_axis_parameters=['axis equal'])
             np.savetxt(savePath + '{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.csv'.format(testCase, title, n, dt, a), phi, delimiter=',')
-    plt.show()
+    plt.close()
 
 if __name__ == '__main__':
 
     startTime = time.time()
 #######################################################################################
-    n = 128
+    n = 1024
     tmax = 10 # number of timesteps in reinitialization, 10 best for zalesak
     reinitfreq = 50 # number of iterations between reinitialization, 500 best for zalesak, 250 for vortex at T=2, 500 at T = 8
     printfreq = 500
-    plotfreq = 2000 # 4000 = end for vortex, T = 2, 8000 = end for zalesak,
+    plotfreq = 500 # 4000 = end for vortex, T = 2, 8000 = end for zalesak,
     doreinit = True
-    dosave = False
+    dosave = True
 
     CFL = 0.9
 
     proj = '2D'
-    testCase = 'zalesak'
-    T = 8 # used in vortex-test
-    dt = 0.01
-    # dt =5*10**-5 # From Claudio Walker article [a]
+    testCase = 'vortex'
+    T = 2 # used in vortex-test
+    dt = 0.0005
+    # dt = 5*10**-5 # From Claudio Walker article [a]
     # dt = 0.001 # Slightly below dtmax for vortex with n = 256, CFL = 0.5
     # dt = 0.0025 # Slightly below dtmax for vortex with n = 256, CFL = 0.9
     # dt = 0.0001 # Slightly below dtmax for vortex with n = 512, CFL = 0.9
@@ -245,7 +245,7 @@ if __name__ == '__main__':
         initX = [a*np.cos(theta) + cx, a*np.sin(theta) + cy]
 
     if dosave:
-        savePath = 'figures/Error_analysis/{0}/n = {1}/'.format(testCase, n)
+        savePath = 'figures/Error_/{0}/n = {1}/'.format(testCase, n)
     else:
         savePath = 'figures/'
     phi = init(phi, initX)
