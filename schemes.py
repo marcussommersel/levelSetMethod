@@ -22,6 +22,8 @@ def TVDRK3(phi, scheme, ax, ay, x, y, dx, dy, dt):
 
     if (scheme) == weno:
         temp = wenoBC(temp)
+    elif (scheme) == central:
+        temp = centralBC(temp)
 
     return temp
 
@@ -73,11 +75,9 @@ def upwind2(phi, ax, ay, x, y, dx,dy):
 def central(phi, ax, ay, x, y, dx, dy):
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
-    for i in range(2, len(x)-2):
-        for j in range(2, len(y)-2):
 
-            phix[i, j] = (phi[i + 1, j] - phi[i - 1, j])/(2*dx)
-            phiy[i, j] = (phi[i, j + 1] - phi[i, j - 1])/(2*dy)
+    phix[1:-2,1:-2] = (phi[2:-1,1:-2] - phi[0:-3,1:-2])/(2*dx)
+    phiy[1:-2,1:-2] = (phi[1:-2,2:-1] - phi[1:-2,0:-3])/(2*dy)
 
     return phix, phiy
 
@@ -186,5 +186,14 @@ def wenoBC(fun):
     fun[:, 0] = fun[:, 1] + (fun[:, 2] - fun[:, 1])
     fun[:, -3] = fun[:, -4] + (fun[:, -5] - fun[:, -4])
     fun[:, -2] = fun[:, -3] + (fun[:, -4] - fun[:, -3])
+    fun[:, -1] = fun[:, -2] + (fun[:, -3] - fun[:, -2])
+    return fun
+
+def centralBC(fun):
+
+    fun[0, :] = fun[1, :] + (fun[2, :] - fun[1, :])
+    fun[-1, :] = fun[-2, :] + (fun[-3, :] - fun[-2, :])
+
+    fun[:, 0] = fun[:, 1] + (fun[:, 2] - fun[:, 1])
     fun[:, -1] = fun[:, -2] + (fun[:, -3] - fun[:, -2])
     return fun

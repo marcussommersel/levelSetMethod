@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 n = 1000
-it = 100
+it = 0
 proj = "2D"
 epsilon = 10e-6
 
@@ -41,8 +41,20 @@ def reinit(phi, init = False):
 
 phi = reinit(phi, initX)
 
-plt.plot(x, phi)
-plt.plot(initX, [0, 0], 'x', markersize=10)
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Times New Roman']
+plt.plot(x, phi, 'k--', label='Signed distance function')
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.plot(initX, [0, 0], 'kx', label='Interface', markersize=10)
+plt.plot([0, initX[0]], [0, 0], 'r', label='Fluid domain', markersize=8)
+plt.plot([initX[1], 1], [0, 0], 'r', label='', markersize=8)
+plt.plot([initX[0], initX[1]], [0, 0], 'b', label='Solid domain', markersize=8)
+plt.xlabel('x', fontsize=14, style='italic')
+plt.ylabel('y', fontsize=14, style='italic')
+plt.legend(loc='upper right', fontsize=14)
+plt.savefig('figures/SDFNew.png', dpi=900)
+
 plt.show()
 temp = np.zeros_like(phi)
 
@@ -56,8 +68,12 @@ for i in range(it):
     temp[-1] = phi[-1] + (u[0] + epsilon)/abs(u[-1] + epsilon)*(phi[-2] - phi[-1])
     phi = temp
     plt.plot(x, phi)
+    x1 = [initX[0], initX[1]]
+    y1 = [0, 0]
     plt.plot(initX, [0, 0], 'x', markersize=10)
+    plt.plot(initX, [0, 0])
     plt.title(i)
+
     plt.show()
 
 if __name__ == "__main__":

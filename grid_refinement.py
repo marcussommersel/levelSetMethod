@@ -15,8 +15,8 @@ def getErrorVal(fileloc):
 def computeOrder_3(err1, err2, err3):
     return (1/np.log(2))*np.log(np.abs((err3 - err2)/(err2-err1)))
 
-def computeOrder_2(err1, err2):
-    return (1/np.log(2))*np.log(np.abs((err2)/(err1)))
+def computeOrder_2(err_dx, err_05_dx):
+    return (1/np.log(2))*np.log(err_dx/err_05_dx)
 
 def main():
     gridlist = ['64\\', '128\\', '256\\', '512\\', '1024\\']
@@ -52,9 +52,9 @@ def main():
     plt.show()
     f.write('Order 2 grids:\n')
     for j in range(1, 5):
-        ie_2.append( computeOrder_2(float(IE[j]), float(IE[j-1])))
-        me_2.append(computeOrder_2(float(ME[j]), float(ME[j-1])))
-        area_2.append(computeOrder_2(float(area_list[j]), float(area_list[j-1])))
+        ie_2.append(computeOrder_2(float(IE[j-1]), float(IE[j])))
+        me_2.append(computeOrder_2(float(ME[j-1]), float(ME[j])))
+        area_2.append(computeOrder_2(float(area_list[j-1]), float(area_list[j])))
         f.write('IE = ' + str(ie_2[j-1]) + '\n')
         f.write('ME = ' + str(me_2[j-1]) + '\n')
         f.write('area = ' + str(area_2[j-1]) + '\n\n')
@@ -64,9 +64,6 @@ def main():
     plt.legend()
     plt.savefig('errorplot2grids.png')
     plt.show()
-        # f.write('IE = ' + str(computeOrder_2(float(IE[j]), float(IE[j-1]))) + '\n')
-        # f.write('ME = ' + str(computeOrder_2(float(ME[j]), float(ME[j-1]))) + '\n')
-        # f.write('area = ' + str(computeOrder_2(float(area_list[j]), float(area_list[j-1]))) + '\n\n')
     f.close()
 
 if __name__=='__main__':

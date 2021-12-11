@@ -2,6 +2,7 @@ import schemes as sc
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import path
+# import matplotlib
 import time
 from skimage import measure
 import tikzplotlib
@@ -16,7 +17,6 @@ def init(phi, init):
                 phi[i,j] = min(np.sqrt((x[i] - init[0])**2 + (y[j] - init[1])**2))
     return phi
 
-
 def cent(phi, x, y, dx, dy):
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
@@ -26,6 +26,7 @@ def cent(phi, x, y, dx, dy):
             phix[i, j] = (phi[i + 1, j] - phi[i - 1, j])/(2*dx)
             phiy[i, j] = (phi[i, j + 1] - phi[i, j - 1])/(2*dy)
     return phix, phiy
+
 def area(xval, yval):
     area = 0
     for i in range(len(xval)):
@@ -62,13 +63,15 @@ def plottingContour(title='', case='', save=False, limitx=[0,1], limity=[0,1]):
     for i in range(len(xval)):
         plt.plot(xval[i], yval[i], 'r', label='Current interface'*(i==0))
     plt.legend(loc='upper right', fontsize=11)
+    plt.grid()
     plt.show()
 
 if __name__ == '__main__':
 
+    # matplotlib.font_manager.findfont('NimbusRomNo9L', 'ttf', None, True, True)
     startTime = time.time()
 #######################################################################################
-    n = 128
+    n = 401
     tmax = 10 # number of timesteps in reinitialization, 10 best for zalesak
     reinitfreq = 500 # number of iterations between reinitialization, 500 best for zalesak, 250 for vortex at T=2, 500 at T = 8
     printfreq = 500
@@ -76,10 +79,11 @@ if __name__ == '__main__':
     dosave = False
 
     proj = '2D'
-    testCase = 'zalesak'
+    testCase = 'pospos'
 #######################################################################################
 
-    plt.rc('font',family='Times New Roman')
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = ['Times New Roman']
     x = np.linspace(0, 1, n)
     if testCase == 'vortex':
         y = np.linspace(0.5, 1.5, n)
@@ -141,41 +145,45 @@ if __name__ == '__main__':
     xval, yval = contour(phi)
 
     #plt.axis([0, 1, 0, 1])
+    plt.axis([-0.1, 1.1, 0, 1])
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.xlabel('x', fontsize=12, style='italic')
-    plt.ylabel('y', fontsize=12, style='italic')
-    plt.plot(initX[0], initX[1], 'b', label='Initial interface')
+    plt.xlabel('x', fontsize=14, style='italic')
+    plt.ylabel('y', fontsize=14, style='italic')
+    plt.plot(initX[0], initX[1], 'b', label='Interface')
     xval, yval = contour(phi)
-    for i in range(len(xval)):
-        plt.plot(xval[i], yval[i], 'r', label='Current interface'*(i==0))
+    # for i in range(len(xval)):
+    #     plt.plot(xval[i], yval[i], 'r', label='Current interface'*(i==0))
     # plt.legend(loc='upper right', fontsize=11)
-
+#######################################################################################
     phix, phiy = cent(phi, x, y, dx, dy)
-    grad = phix + phiy
+    grad = np.sqrt(phix**2 + phiy**2)
     gradx = phix
     grady = phiy
 
-    alpha = np.arccos(phix/phi)
+    # alpha = np.arccos(phix/phi)
     
-    nn = grad/abs(grad)
+    # nn = grad/abs(grad)
     nx = gradx#/abs(gradx)
     ny = grady#/abs(grady)
 
-    x1 = n*1.5/4
-    y1 = n/2
 
-    
+
+    x1 = n*2/10
+    y1 = n*6/10
+
+    print(nx[int(x1)+1, int(y1)+1])
+    print(ny[int(x1)+1, int(y1)+1])
 
     ## only nn
-    bix = x[int(x1)] - phi[int(x1), int(y1)]*nn[int(x1)+1, int(y1)+1]
-    ipx = x[int(x1)] - 2*phi[int(x1), int(y1)]*nn[int(x1)+1, int(y1)+1]
+    # bix = x[int(x1)] - phi[int(x1), int(y1)]*nn[int(x1)+1, int(y1)+1]
+    # ipx = x[int(x1)] - 2*phi[int(x1), int(y1)]*nn[int(x1)+1, int(y1)+1]
 
-    biy = y[int(y1)] - phi[int(x1), int(y1)]*nn[int(x1)+1, int(y1)+1]
-    ipy = y[int(y1)] - 2*phi[int(x1), int(y1)]*nn[int(x1)+1, int(y1)+1]
+    # biy = y[int(y1)] - phi[int(x1), int(y1)]*nn[int(x1)+1, int(y1)+1]
+    # ipy = y[int(y1)] - 2*phi[int(x1), int(y1)]*nn[int(x1)+1, int(y1)+1]
 
-    plt.plot(x[int(x1)], y[int(y1)], 'ro', label='Ghost point')
-    plt.plot(bix, biy, 'go', label='Boundary intercept nn')
-    plt.plot(ipx, ipy, 'co', label='Image point nn')
+    plt.plot(x[int(x1)], y[int(y1)], 'ro', label='Ghost point', ms=8)
+    # plt.plot(bix, biy, 'go', label='Boundary intercept nn')
+    # plt.plot(ipx, ipy, 'co', label='Image point nn')
 
     ## nx and ny
     bix = x[int(x1)] - phi[int(x1), int(y1)]*nx[int(x1)+1, int(y1)+1]
@@ -184,8 +192,22 @@ if __name__ == '__main__':
     biy = y[int(y1)] - phi[int(x1), int(y1)]*ny[int(x1)+1, int(y1)+1]
     ipy = y[int(y1)] - 2*phi[int(x1), int(y1)]*ny[int(x1)+1, int(y1)+1]
 
-    plt.plot(bix, biy, 'gx', label='Boundary intercept nx ny')
-    plt.plot(ipx, ipy, 'cx', label='Image point nx ny')
-    plt.legend(loc='upper right', fontsize=11)
+
+    fpx1 = 0
+    fpx2 = 0.2
+    fpy1 = 0.6
+    fpy2 = 0.8
+
+    plt.plot(fpx1, fpy1, 'kx', label='Fluid point', ms=8)
+    plt.plot(bix, biy, 'gx', label='Boundary intercept', ms=8)
+    plt.plot(ipx, ipy, 'mx', label='Image point', ms=8)
+    plt.plot(fpx1, fpy2, 'kx', ms=8)
+    plt.plot(fpx2, fpy2, 'kx', ms=8)
+    plt.plot()
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(loc='upper right', fontsize=14)
+    plt.grid(True)
+    plt.savefig('figures/GCIBM.png', dpi=900)
 
     plt.show()
