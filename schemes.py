@@ -27,16 +27,18 @@ def TVDRK3(phi, scheme, ax, ay, x, y, dx, dy, dt):
 
     return temp
 
-def euler(phi, scheme, ax, ay, x, y, dx, dy, dt):
+def euler(phi, scheme, ax, ay, x, y, dx, dy, dt): # only used for testing
     phix, phiy = scheme(phi, ax, ay, x, y, dx, dy)
     temp = phi - dt*(ax*phix + ay*phiy)
 
     if (scheme) == weno:
         temp = wenoBC(temp)
+    elif (scheme) == central:
+        temp = centralBC(temp)
 
     return temp
 
-def upwind(phi, ax, ay, x, y, dx, dy):
+def upwind(phi, ax, ay, x, y, dx, dy): # only used for testing
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
     for i in range(2, len(x)-2):
@@ -54,7 +56,7 @@ def upwind(phi, ax, ay, x, y, dx, dy):
 
     return phix, phiy
 
-def upwind2(phi, ax, ay, x, y, dx,dy):
+def upwind2(phi, ax, ay, x, y, dx,dy): # only used for testing
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
     for i in range(2, len(x)-2):
@@ -72,7 +74,7 @@ def upwind2(phi, ax, ay, x, y, dx,dy):
 
     return phix, phiy
 
-def central(phi, ax, ay, x, y, dx, dy):
+def central(phi, ax, ay, x, y, dx, dy): # only used for testing
     phix = np.zeros([len(x), len(y)])
     phiy = np.zeros([len(x), len(y)])
 

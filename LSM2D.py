@@ -125,13 +125,15 @@ def plottingContour(xcompare, ycompare, title='', case='', save=False, limitx=[-
         else:
             plt.savefig(savePath + '{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.png'.format(testCase, title, n, dt, a), dpi=900)
             np.savetxt(savePath + '{0}, {1}, n = {2}, dt = {3}, no Reinit, A = {4}.csv'.format(testCase, title, n, dt, a), phi, delimiter=',')
-    plt.close()
+    plt.show()
 
 if __name__ == '__main__':
 
     startTime = time.time()
-#######################################################################################
-    n = 64
+
+# Variables
+######################################################################################
+    n = 128
     tmax = 10
     reinitfreq = 50
     printfreq = 500
@@ -140,12 +142,11 @@ if __name__ == '__main__':
     dosave = False
 
     CFL = 0.5
-    dt = 0
-    it = 20000
+    it = 20000 # Maximum number of iterations
     proj = '2D'
     testCase = 'vortex'
     T = 2 # End time
-#######################################################################################
+######################################################################################
 
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.serif'] = ['Times New Roman']
@@ -159,7 +160,9 @@ if __name__ == '__main__':
     v = np.zeros([len(x), len(y)])
     phi = np.zeros([len(x), len(y)])
     theta = np.linspace(0, 2*np.pi, n)
+    dt = 0
     t = 0
+
     def uVortex(i,j):
         return -2*(np.sin(np.pi*x[i]))**2*np.sin(np.pi*y[j])*np.cos(np.pi*y[j])*np.cos(np.pi*t/T)
     def vVortex(i,j):
@@ -178,7 +181,6 @@ if __name__ == '__main__':
         # it = int(T/dt + 1) # If a constant dt is chosen
     elif testCase == 'zalesak':
 
-        # Åsmund Ervik:
         cx = 0.5
         cy = 0.5
         a = 1/3
@@ -223,14 +225,14 @@ if __name__ == '__main__':
     phi = init(phi, initX)
     mtVec = []
     phiInit = np.copy(phi)
-    xinit, yinit = contour(phiInit)
+    phiInitX, phiInitY = contour(phiInit)
     mt_0 = mt(np.copy(phiInit))
 
     xval, yval = contour(phi)
     initialArea = area(xval, yval)
     print('Initial area = {0}'.format(initialArea))
     title = 't = {0:.3f}, it = 0'.format(t)
-    plottingContour(xinit, yinit, title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
+    plottingContour(phiInitX, phiInitY, title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
 
     for k in range(1, it):
 
@@ -249,25 +251,25 @@ if __name__ == '__main__':
         phi = sc.TVDRK3(phi, sc.weno, u, v, x, y, dx, dy, dt)
         mtVec = np.append(mtVec, np.abs(mt(np.copy(phi)) - mt_0)*dt)
 
-        if k%reinitfreq == 0 and k != 0 and doreinit:
+        if k%reinitfreq == 0 and k != 0 and doreinit: # Reinitialization
             reinitStart = time.time()
             phi = reinit(phi, sc.godunov)
             reinitTime = time.time() - reinitStart
             print('Reinitialization time = {0}'.format(reinitTime))
-        if k%plotfreq == 0 or round(t/T, 4) == 1.000 or round(t/T, 4) == 0.250 or round(t/T, 4) == 0.500 or round(t/T, 4) == 0.750:
+        if k%plotfreq == 0 or round(t/T, 4) == 1.000: # Plotting
             title = 't = {0:.3f}, it = {1}'.format(t, k)
             xval, yval = contour(phi)
-            plottingContour(xinit[0], yinit[0], title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
+            plottingContour(phiInitX[0], phiInitY[0], title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
             a = area(xval, yval)
             print('Area = {0} for {1}'.format(a, title))
             print('Area change = ' + str(100*(initialArea-a)/initialArea) + '%')
-        if k%printfreq == 0:
+        if k%printfreq == 0: # Printing
             print('iteration = {0}, time = {1:.5f}, iteration time = {2:.2f}'.format(k, t, time.time() - startTime) + (testCase=='vortex')*', t/T = {0:.5f}'.format(t/T))
 
         if t == T:
             break
 
-    plottingContour(xinit[0], yinit[0], title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
+    plottingContour(phiInitX[0], phiInitY[0], title, testCase, dosave, [x[0],x[-1]], [y[0],y[-1]])
     
     if dosave:
         f = open(savePath + 'log.txt', 'w')
@@ -278,7 +280,7 @@ if __name__ == '__main__':
         f.write('Area change = {0} %\n'.format(100*(initialArea-a)/initialArea))
         f.close()
     else:
-        print('\n')
+        print('')
         print('Total time = {0:.4f}'.format(time.time() - startTime))
         print('Interface error = {0}'.format(interfaceError(phi, phiInit)))
         print('Mass error = {0}'.format(massError(mtVec, t)))
